@@ -32,7 +32,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"tryffel.net/go/jellycli/models"
 )
 
 // AppConfig is a configuration loaded during startup
@@ -42,63 +41,25 @@ var configIsEmpty bool
 
 type Config struct {
 	Jellyfin Jellyfin `yaml:"jellyfin"`
-	Subsonic Subsonic `yaml:"subsonic"`
-	Player   Player   `yaml:"player"`
-	Gui      Gui      `yaml:"gui"`
+	Player Player `yaml:"player"`
 }
 
-type Gui struct {
-	PageSize            int  `yaml:"page_size"`
-	DebugMode           bool `yaml:"debug_mode"`
-	LimitRecentlyPlayed bool `yaml:"limit_recent_songs"`
-	MouseEnabled        bool `yaml:"enable_mouse"`
-	DoubleClickMs       int  `yaml:"mouse_double_click_interval_ms"`
-	// valid types: artist,album,song,playlist,genre
-	SearchTypes        []models.ItemType `yaml:"search_types"`
-	SearchResultsLimit int               `yaml:"search_results_limit"`
-
-	VolumeSteps int `yaml:"volume_steps"`
-
-	// EnableSorting enables sorting on remote server
-	EnableSorting bool `yaml:"enable_sorting"`
-	// EnableFiltering enables filtering on remote server
-	EnableFiltering bool `yaml:"enable_filtering"`
-	// EnableResultsFiltering enables filtering existing results, 'search inside results'.
-	EnableResultsFiltering bool `yaml:"enable_results_filtering"`
-}
 
 type Player struct {
-	Server           string `yaml:"server"`
-	LogFile          string `yaml:"log_file"`
-	LogLevel         string `yaml:"log_level"`
-	AudioBufferingMs int    `yaml:"audio_buffering_ms"`
-	HttpBufferingS   int    `yaml:"http_buffering_s"`
+	Server                   string `yaml:"server"`
+	LogFile                  string `yaml:"log_file"`
+	LogLevel                 string `yaml:"log_level"`
+	AudioBufferingMs         int    `yaml:"audio_buffering_ms"`
+	HttpBufferingS           int    `yaml:"http_buffering_s"`
 	// memory limit in MiB
-	HttpBufferingLimitMem int  `yaml:"http_buffering_limit_mem"`
-	EnableRemoteControl   bool `yaml:"enable_remote_control"`
+	HttpBufferingLimitMem    int  `yaml:"http_buffering_limit_mem"`
+	EnableRemoteControl      bool `yaml:"enable_remote_control"`
+	DisablePlaybackReporting bool `yaml:"disable_playback_reporting"`
 
-	EnableLocalCache bool   `yaml:"enable_local_cache"`
 	LocalCacheDir    string `yaml:"local_cache_dir"`
+
 }
 
-func (g *Gui) sanitize() {
-	if g.PageSize <= 0 || g.PageSize > 500 {
-		g.PageSize = 100
-		PageSize = g.PageSize
-	}
-	if g.DoubleClickMs <= 0 {
-		g.DoubleClickMs = 220
-	}
-	if len(g.SearchTypes) == 0 {
-		g.SearchTypes = []models.ItemType{models.TypeArtist, models.TypeAlbum, models.TypeSong, models.TypePlaylist}
-	}
-	if g.SearchResultsLimit == 0 {
-		g.SearchResultsLimit = 30
-	}
-	if g.VolumeSteps < 2 || g.VolumeSteps > 50 {
-		g.VolumeSteps = 20
-	}
-}
 
 func (p *Player) sanitize() {
 
@@ -133,12 +94,7 @@ func (p *Player) sanitize() {
 // initialize new config with some sensible values
 func (c *Config) initNewConfig() {
 	c.Player.sanitize()
-	c.Gui.sanitize()
-	c.Gui.MouseEnabled = true
 	c.Player.EnableRemoteControl = true
-	// booleans are hard to determine whether they are set or not,
-	// so only fill this here
-	c.Gui.LimitRecentlyPlayed = true
 	if c.Player.Server == "" {
 		c.Player.Server = "jellyfin"
 	}
@@ -146,15 +102,11 @@ func (c *Config) initNewConfig() {
 
 	tempDir := os.TempDir()
 	c.Player.LogFile = path.Join(tempDir, "jellycli.log")
-
-	c.Gui.EnableResultsFiltering = true
-	c.Player.EnableLocalCache = false
 }
 
 // can config file be considered empty / not configured
 func (c *Config) isEmptyConfig() bool {
 	return c.Jellyfin.UserId == "" &&
-		c.Subsonic.Url == "" &&
 		c.Player.Server == ""
 }
 
@@ -194,59 +146,32 @@ func ConfigFromViper() error {
 			ServerId:  viper.GetString("jellyfin.server_id"),
 			MusicView: viper.GetString("jellyfin.music_view"),
 		},
-		Subsonic: Subsonic{
-			Url:      viper.GetString("subsonic.url"),
-			Username: viper.GetString("subsonic.username"),
-			Salt:     viper.GetString("subsonic.salt"),
-			Token:    viper.GetString("subsonic.token"),
-		},
 		Player: Player{
-			Server:                viper.GetString("player.server"),
-			LogFile:               viper.GetString("player.logfile"),
-			LogLevel:              viper.GetString("player.loglevel"),
-			AudioBufferingMs:      viper.GetInt("player.audio_buffering_ms"),
-			HttpBufferingS:        viper.GetInt("player.http_buffering_s"),
-			HttpBufferingLimitMem: viper.GetInt("player.http_buffering_limit_mem"),
-			EnableRemoteControl:   viper.GetBool("player.enable_remote_control"),
-			LocalCacheDir:         viper.GetString("player.local_cache_dir"),
-			EnableLocalCache:      viper.GetBool("player.enable_local_cache"),
-		},
-		Gui: Gui{
-			PageSize:            viper.GetInt("gui.pagesize"),
-			DebugMode:           viper.GetBool("gui.debug_mode"),
-			LimitRecentlyPlayed: viper.GetBool("gui.limit_recently_played"),
-			MouseEnabled:        viper.GetBool("gui.mouse_enabled"),
-			DoubleClickMs:       viper.GetInt("gui.double_click_ms"),
-			SearchResultsLimit:  viper.GetInt("gui.search_results_limit"),
-			VolumeSteps:         viper.GetInt("gui.volume_steps"),
-
-			EnableSorting:          viper.GetBool("gui.enable_sorting"),
-			EnableFiltering:        viper.GetBool("gui.enable_filtering"),
-			EnableResultsFiltering: viper.GetBool("gui.enable_results_filtering"),
+			Server:                   viper.GetString("player.server"),
+			LogFile:                  viper.GetString("player.logfile"),
+			LogLevel:                 viper.GetString("player.loglevel"),
+			AudioBufferingMs:         viper.GetInt("player.audio_buffering_ms"),
+			HttpBufferingS:           viper.GetInt("player.http_buffering_s"),
+			HttpBufferingLimitMem:    viper.GetInt("player.http_buffering_limit_mem"),
+			EnableRemoteControl:      viper.GetBool("player.enable_remote_control"),
+			DisablePlaybackReporting: viper.GetBool("player.disable_playback_reporting"), // Read new field
+			LocalCacheDir:            viper.GetString("player.local_cache_dir"),
 		},
 	}
 
-	searchTypes := viper.GetStringSlice("gui.search_types")
-	for _, v := range searchTypes {
-		searchType := models.ItemType(v)
-		AppConfig.Gui.SearchTypes = append(AppConfig.Gui.SearchTypes, searchType)
-	}
-
-	if len(searchTypes) == 0 {
-		AppConfig.Gui.SearchTypes = []models.ItemType{models.TypeArtist, models.TypeAlbum,
-			models.TypeSong, models.TypePlaylist}
-
-	}
-
-	if AppConfig.Jellyfin.Url == "" && AppConfig.Subsonic.Url == "" {
+	if AppConfig.Jellyfin.Url == "" {
 		configIsEmpty = true
 		setDefaults()
 	} else {
 		AppConfig.Player.sanitize()
-		AppConfig.Gui.sanitize()
 	}
 	AudioBufferPeriod = time.Millisecond * time.Duration(AppConfig.Player.AudioBufferingMs)
-	VolumeStepSize = (AudioMinVolume + AudioMaxVolume) / AppConfig.Gui.VolumeSteps
+	// VolumeStepSize calculation removed, will be set in settings.go
+
+	// Add debug logging for effective config values
+	logrus.Debugf("Effective Config - Player LogLevel: %s", AppConfig.Player.LogLevel)
+	logrus.Debugf("Effective Config - Player DisablePlaybackReporting: %t", AppConfig.Player.DisablePlaybackReporting)
+
 	return nil
 }
 
@@ -282,37 +207,14 @@ func UpdateViper() {
 	viper.Set("jellyfin.server_id", AppConfig.Jellyfin.ServerId)
 	viper.Set("jellyfin.music_view", AppConfig.Jellyfin.MusicView)
 
-	viper.Set("subsonic.url", AppConfig.Subsonic.Url)
-	viper.Set("subsonic.username", AppConfig.Subsonic.Username)
-	viper.Set("subsonic.salt", AppConfig.Subsonic.Salt)
-	viper.Set("subsonic.token", AppConfig.Subsonic.Token)
-
 	viper.Set("player.server", AppConfig.Player.Server)
 	viper.Set("player.logfile", AppConfig.Player.LogFile)
 	viper.Set("player.loglevel", AppConfig.Player.LogLevel)
 	viper.Set("player.http_buffering_s", AppConfig.Player.HttpBufferingS)
 	viper.Set("player.http_buffering_limit_mem", AppConfig.Player.HttpBufferingLimitMem)
 	viper.Set("player.enable_remote_control", AppConfig.Player.EnableRemoteControl)
+	viper.Set("player.disable_playback_reporting", AppConfig.Player.DisablePlaybackReporting) // Save new field
 	viper.Set("player.audio_buffering_ms", AppConfig.Player.AudioBufferingMs)
 	viper.Set("player.local_cache_dir", AppConfig.Player.LocalCacheDir)
-	viper.Set("player.enable_local_cache", AppConfig.Player.EnableLocalCache)
 
-	viper.Set("gui.search_results_limit", AppConfig.Gui.SearchResultsLimit)
-	viper.Set("gui.debug_mode", AppConfig.Gui.DebugMode)
-	viper.Set("gui.limit_recently_played", AppConfig.Gui.LimitRecentlyPlayed)
-	viper.Set("gui.mouse_enabled", AppConfig.Gui.MouseEnabled)
-	viper.Set("gui.double_click_ms", AppConfig.Gui.DoubleClickMs)
-	viper.Set("gui.pagesize", AppConfig.Gui.PageSize)
-	viper.Set("gui.volume_steps", AppConfig.Gui.VolumeSteps)
-
-	sTypes := make([]string, len(AppConfig.Gui.SearchTypes))
-	for i, v := range AppConfig.Gui.SearchTypes {
-		sTypes[i] = string(v)
-	}
-
-	viper.Set("gui.search_types", sTypes)
-
-	viper.Set("gui.enable_sorting", AppConfig.Gui.EnableSorting)
-	viper.Set("gui.enable_filtering", AppConfig.Gui.EnableFiltering)
-	viper.Set("gui.enable_results_filtering", AppConfig.Gui.EnableResultsFiltering)
 }

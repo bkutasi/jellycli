@@ -67,7 +67,7 @@ func newAudio() *Audio {
 		volume: &effects.Volume{
 			Streamer: nil,
 			Base:     config.AudioVolumeLogBase,
-			Volume:   (config.AudioMinVolumedB + config.AudioMaxVolumedB) / 2,
+			Volume:   config.AudioMaxVolumedB,
 			Silent:   false,
 		},
 		mixer:           &beep.Mixer{},
@@ -77,7 +77,7 @@ func newAudio() *Audio {
 	a.ctrl.Paused = false
 	a.volume.Streamer = a.ctrl
 	a.volume.Silent = false
-	a.status.Volume = 50
+	a.status.Volume = 100
 
 	a.currentSampleRate = config.AudioSamplingRate
 	return a

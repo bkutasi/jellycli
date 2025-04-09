@@ -96,6 +96,12 @@ func (jf *Jellyfin) makeRequest(method, url string, body *[]byte, params *params
 		}
 		req.URL.RawQuery = q.Encode()
 	}
+
+	// Log request body at trace level if it's a POST request
+	if req.Method == "POST" && body != nil && logrus.GetLevel() >= logrus.TraceLevel {
+		logrus.Tracef("POST body for %s: %s", req.URL.Path, string(*body))
+	}
+
 	start := time.Now()
 	resp, err := jf.client.Do(req)
 	if err != nil {

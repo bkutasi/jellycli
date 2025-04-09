@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"tryffel.net/go/jellycli/interfaces"
@@ -51,13 +50,7 @@ func getItemType(dto *map[string]interface{}) (models.ItemType, error) {
 	}
 }
 
-func (jf *Jellyfin) CanCacheSongs() bool { return true }
-
 func (jf *Jellyfin) GetItem(id models.Id) (models.Item, error) {
-	item, found := jf.cache.Get(id)
-	if found && item != nil {
-		return item, nil
-	}
 	params := jf.defaultParams()
 
 	resp, err := jf.get(fmt.Sprintf("/Users/%s/Items/%s", jf.userId, id), params)
@@ -84,7 +77,7 @@ func (jf *Jellyfin) GetItem(id models.Id) (models.Item, error) {
 
 	body = bytes.NewBuffer(b)
 
-	item = nil
+	var item models.Item // Declare item variable
 	switch itemT {
 	case models.TypeSong:
 		dto := song{}
@@ -117,8 +110,6 @@ func (jf *Jellyfin) GetItem(id models.Id) (models.Item, error) {
 	default:
 		return nil, fmt.Errorf("unknown item type: %s", itemT)
 	}
-
-	jf.cache.Put(id, item, true)
 	return item, nil
 }
 
@@ -132,22 +123,6 @@ func (jf *Jellyfin) GetParentItem(id models.Id) (models.Item, error) {
 }
 
 func (jf *Jellyfin) GetArtist(id models.Id) (*models.Artist, error) {
-	item, found := jf.cache.Get(id)
-	// Return cached value if both artist and albums exist
-	if found && item != nil {
-		artist, ok := item.(*models.Artist)
-		if !ok {
-			jf.cache.Delete(id)
-			logrus.Warningf("Found artist %s from cache with invalid type: %s", id, item.GetType())
-		} else if artist.Albums != nil {
-			if len(artist.Albums) == artist.AlbumCount {
-				return artist, nil
-			} else {
-				jf.cache.Delete(id)
-			}
-		}
-	}
-
 	ar := &models.Artist{}
 
 	params := jf.defaultParams()
@@ -176,14 +151,7 @@ func (jf *Jellyfin) GetArtist(id models.Id) (*models.Artist, error) {
 		items[i] = v
 	}
 
-	err = jf.cache.PutBatch(items, true)
-	if err != nil {
-		return ar, fmt.Errorf("store artist albums to cache: %v", err)
-	}
-
 	ar.Albums = ids
-	jf.cache.Put(id, ar, true)
-
 	return ar, nil
 }
 
@@ -207,22 +175,6 @@ func (jf *Jellyfin) GetArtistAlbums(id models.Id) ([]*models.Album, error) {
 }
 
 func (jf *Jellyfin) GetAlbum(id models.Id) (*models.Album, error) {
-	item, found := jf.cache.Get(id)
-	// Return cached value if both artist and albums exist
-	if found && item != nil {
-		album, ok := item.(*models.Album)
-		if !ok {
-			jf.cache.Delete(id)
-			logrus.Warningf("Found album %s from cache with invalid type: %s", id, item.GetType())
-		} else if album.Songs != nil {
-			if len(album.Songs) == album.SongCount {
-				return album, nil
-			} else {
-				jf.cache.Delete(id)
-			}
-		}
-	}
-
 	al := &models.Album{}
 	params := *jf.defaultParams()
 
@@ -253,15 +205,8 @@ func (jf *Jellyfin) GetAlbum(id models.Id) (*models.Album, error) {
 		ids[i] = v.Id
 		items[i] = v
 	}
-
-	err = jf.cache.PutBatch(items, true)
-	if err != nil {
-		return al, fmt.Errorf("store artist albums to cache: %v", err)
-	}
 	al.SongCount = len(ids)
 	al.Songs = ids
-	jf.cache.Put(id, al, true)
-
 	return al, nil
 }
 
@@ -289,7 +234,6 @@ func (jf *Jellyfin) GetAlbumSongs(album models.Id) ([]*models.Song, error) {
 	for i, v := range dto.Songs {
 		song := v.toSong()
 		songs[i] = song
-		jf.cache.Put(song.Id, song, true)
 	}
 
 	return songs, nil
@@ -370,7 +314,6 @@ func (jf *Jellyfin) GetPlaylists() ([]*models.Playlist, error) {
 		logInvalidType(&v, "get playlists")
 		pl := v.toPlaylist()
 		data[i] = pl
-		jf.cache.Put(pl.Id, pl, true)
 	}
 
 	return data, nil
@@ -678,14 +621,10 @@ func (jf *Jellyfin) GetGenreAlbums(genre models.IdName) ([]*models.Album, error)
 }
 
 func (jf *Jellyfin) GetAlbumArtist(album *models.Album) (*models.Artist, error) {
-	artist := jf.cache.GetArtist(album.Id)
-	if artist == nil {
-		artist, err := jf.GetArtist(album.Artist)
-		if err != nil {
-			return nil, fmt.Errorf("get artist: %v", err)
-		}
-		jf.cache.Put(artist.Id, artist, true)
-		return artist, nil
+	// Always fetch the artist directly since cache is removed
+	artist, err := jf.GetArtist(album.Artist)
+	if err != nil {
+		return nil, fmt.Errorf("get artist: %v", err)
 	}
 	return artist, nil
 }

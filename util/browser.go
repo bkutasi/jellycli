@@ -20,6 +20,8 @@ package util
 
 import "os/exec"
 
+var browserOpenUrl = "xdg-open" // Define directly for Linux-only build
+
 //OpenUrlInBrowser attempts to open given url in default browser
 func OpenUrlInBrowser(url string) error {
 	cmd := exec.Command(browserOpenUrl, url)

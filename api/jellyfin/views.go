@@ -21,7 +21,6 @@ package jellyfin
 import (
 	"encoding/json"
 	"fmt"
-	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/interfaces"
 	"tryffel.net/go/jellycli/models"
 )
@@ -70,7 +69,6 @@ func (jf *Jellyfin) GetLatestAlbums() ([]*models.Album, error) {
 		albums[i] = v.toAlbum()
 		ids[i] = albums[i].Id
 	}
-	jf.cache.PutList("latest_music", ids)
 	return albums, nil
 }
 
@@ -83,12 +81,6 @@ func (jf *Jellyfin) GetRecentlyPlayed(paging interfaces.Paging) ([]*models.Song,
 	params["UserId"] = jf.userId
 	params.setParentId(jf.musicView)
 
-	if config.LimitRecentlyPlayed {
-		paging = interfaces.Paging{
-			CurrentPage: 0,
-			PageSize:    config.LimitedRecentlyPlayedCount,
-		}
-	}
 	params.setPaging(paging)
 
 	resp, err := jf.get(fmt.Sprintf("/Users/%s/Items", jf.userId), &params)
@@ -109,9 +101,6 @@ func (jf *Jellyfin) GetRecentlyPlayed(paging interfaces.Paging) ([]*models.Song,
 
 	totalSongs := dto.TotalSongs
 
-	if config.LimitRecentlyPlayed {
-		totalSongs = len(dto.Songs)
-	}
 
 	return songs, totalSongs, nil
 }

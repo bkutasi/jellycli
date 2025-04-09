@@ -5,48 +5,6 @@
 # Any key can be set with environment variables. See Readme or use command
 # jellycli list-env to list available variables.
 
-# Gui settings
-gui:
-  # debug mode. When enabled, a new shortcut is added for creating debug dump.
-  debug_mode: false
-
-  # If mouse support is enabled, maximum interval (ms) for double click.
-  # Default: 220
-  double_click_ms: 220
-
-  # Enable server-side filtering if items. Results depend on backend being used.
-  enable_filtering: false
-
-  # enable client-side filtering of list items.
-  enable_results_filtering: true
-
-  # enable server-side sorting. Results depend on item type and backend being used.
-  enable_sorting: false
-
-  # Limit recent songs to a sensible value.
-  # When set to false, 'recent songs' are actually
-  # all songs ever listened on this account
-  limit_recently_played: true
-
-  # Enable mouse support
-  mouse_enabled: true
-
-  # Paging, default: 100
-  pagesize: 100
-
-  # limit to search queries, default 30.
-  search_results_limit: 30
-
-  # types to search for, case-sensitive values. Default: Artist, Album, Song, Playlist
-  search_types:
-    - Artist
-    - Album
-    - Song
-    - Playlist
-
-  # volume control total steps
-  volume_steps: 20
-
 # Jellyfin settings. All values are saved when logging in.
 jellyfin:
   url: http://localhost/jellyfin
@@ -57,15 +15,6 @@ jellyfin:
   device_id:
   server_id:
   music_view:
-
-# Subsonic configuration
-# Salt & token are created automatically from password during login.
-# To force logout, remove salt & token
-subsonic:
-  url: http://localhost
-  username:
-  salt:
-  token:
 
 # Audio & application settings
 player:
@@ -92,7 +41,6 @@ player:
   # If enabled, user can control playback remotely with another client.
   enable_remote_control: true
 
-  # enable local metadata caching. If enabled, use command 'refresh' to pull latest data.
-  # Subsonic servers need this enabled to properly browse library.
-  enable_local_cache: false
 
+  # If enabled, playback reporting (start, progress, stop) is disabled.
+  disable_playback_reporting: false

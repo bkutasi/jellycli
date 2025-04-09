@@ -83,6 +83,7 @@ func (jf *Jellyfin) handleSocketOutbount(msg interface{}) error {
 	if jf.socket == nil {
 		return fmt.Errorf("socket not open")
 	}
+	logrus.Tracef("Sending WebSocket message: %+v", msg)
 	return jf.socket.WriteJSON(msg)
 }
 
@@ -93,6 +94,7 @@ func (jf *Jellyfin) readMessage() {
 		if err != nil {
 			jf.handleSocketError(err)
 		}
+			logrus.Tracef("Received WebSocket message: %s", string(buff))
 		if msgType == websocket.TextMessage {
 			err = jf.parseInboudMessage(&buff)
 			jf.handleSocketError(err)
@@ -326,7 +328,7 @@ func (jf *Jellyfin) pushSongsToQueue(items []string, mode string) {
 	if mode == "PlayNow" {
 		jf.player.StopMedia()
 		jf.queue.ClearQueue(true)
-		jf.queue.PlayNext(songs)
+		jf.queue.AddSongs(songs) // Use AddSongs for forward iteration and correct appending
 	} else if mode == "PlayLast" {
 		//} else if mode == "PlayNext" {
 		jf.queue.PlayNext(songs)

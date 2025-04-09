@@ -30,13 +30,9 @@ const (
 )
 
 var (
-	// PageSize controls paging and is read from config file
-	PageSize            = 100
-	LimitRecentlyPlayed = false
-	// how many recent song to show, if limited
-	LimitedRecentlyPlayedCount = 24
-	AudioBufferPeriod          = time.Millisecond * 100
-
+	// AudioBufferPeriod defines the target buffer duration for the audio player.
+	AudioBufferPeriod = time.Millisecond * 100
+	// VolumeStepSize defines the increment/decrement value for volume control (0-100).
 	VolumeStepSize = 5
 )
 

@@ -42,20 +42,6 @@ func (j *Jellyfin) GetType() string {
 	return "jellyfin"
 }
 
-type Subsonic struct {
-	Url      string `yaml:"server_url"`
-	Username string `yaml:"username"`
-	Salt     string `yaml:"salt"`
-	Token    string `yaml:"token"`
-}
-
-func (s *Subsonic) DumpConfig() interface{} {
-	return s
-}
-
-func (s *Subsonic) GetType() string {
-	return "subsonic"
-}
 
 // KeyValueProvider provides means to request new values for outdated values,
 // to request new password or url.

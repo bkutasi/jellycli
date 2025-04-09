@@ -9,7 +9,8 @@ ARG JELLYCLI_BRANCH=master
 
 # use caching layers as needed
 
-RUN git clone -b ${JELLYCLI_BRANCH} --single-branch --depth 1 https://github.com/tryffel/jellycli ./
+# Copy local source code instead of cloning
+COPY . .
 
 RUN go mod download
 

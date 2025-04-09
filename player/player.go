@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 	"tryffel.net/go/jellycli/api"
+	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/interfaces"
 	"tryffel.net/go/jellycli/models"
 	"tryffel.net/go/jellycli/task"
@@ -49,7 +50,6 @@ type Player struct {
 	task.Task
 	*Audio
 	*Queue
-	*Items
 
 	lock *sync.RWMutex
 
@@ -82,10 +82,6 @@ func NewPlayer(browser api.MediaServer) (*Player, error) {
 
 	p.Audio = newAudio()
 	p.Queue = newQueue()
-	p.Items, err = newItems(browser)
-	if err != nil {
-		return p, err
-	}
 	if remoteController, ok := browser.(api.RemoteController); ok {
 		p.remoteController = remoteController
 		p.remoteController.SetPlayer(p)
@@ -108,7 +104,7 @@ func (p *Player) songCompleted() {
 	p.songComplete <- true
 }
 
-//is download pending / ongoing
+// is download pending / ongoing
 func (p *Player) isDownloadingSong() bool {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
@@ -116,7 +112,7 @@ func (p *Player) isDownloadingSong() bool {
 }
 
 func (p *Player) loop() {
-	// interval to refresh status. This is the interval gui will be updated.
+	// interval to refresh status. This is the interval the status will be updated.
 	ticker := time.NewTicker(time.Second)
 
 	for true {
@@ -124,7 +120,6 @@ func (p *Player) loop() {
 		case <-p.StopChan():
 			// stop application
 			p.Audio.StopMedia()
-			p.Items.closeDb()
 			break
 		case <-p.songComplete:
 			// stream / song complete, get next song
@@ -262,6 +257,11 @@ func (p *Player) Previous() {
 
 // report audio status to server
 func (p *Player) audioCallback(status interfaces.AudioStatus) {
+	// Skip reporting if disabled in config
+	if config.AppConfig.Player.DisablePlaybackReporting {
+		return
+	}
+
 	p.lock.RLock()
 	lastTime := p.lastApiReport
 	p.lock.RUnlock()
@@ -330,7 +330,7 @@ func (p *Player) audioCallback(status interfaces.AudioStatus) {
 		apiStatus.PlaylistLength = status.Song.Duration
 	}
 	f := func() {
-		err := p.browser.ReportProgress(apiStatus)
+		err := p.api.ReportProgress(apiStatus)
 		if err != nil {
 			logrus.Errorf("report audio progress to server: %v", err)
 		}

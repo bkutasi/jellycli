@@ -53,7 +53,6 @@ const (
 
 type Jellyfin struct {
 	task.Task
-	cache     *Cache
 	host      string
 	token     string
 	userId    string
@@ -112,7 +111,6 @@ func (jf *Jellyfin) GetInfo() (*models.ServerInfo, error) {
 		remoteStatus = "connected"
 	}
 
-	info.Misc["Cached objects"] = strconv.Itoa(jf.GetCacheItems())
 	info.Misc["Remote control"] = remoteStatus
 	return info, nil
 }
@@ -158,11 +156,6 @@ func NewJellyfin(conf *config.Jellyfin, provider config.KeyValueProvider) (*Jell
 	jf.SessionId = util.RandomKey(15)
 	jf.Name = "api"
 	jf.SetLoop(jf.loop)
-
-	jf.cache, err = NewCache()
-	if err != nil {
-		return jf, fmt.Errorf("create cache: %v", err)
-	}
 
 	if jf.host == "" {
 		jf.host, err = provider.Get("jellyfin.url", false, "jellyfin url")

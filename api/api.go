@@ -138,13 +138,3 @@ type RemoteServer interface {
 	// it can be e.g. hashed from url and user.
 	GetId() string
 }
-
-// Cacher describes how data may be pulled from remote server
-// and might override some Browser methods.
-type Cacher interface {
-
-	// CanCacheSong returns true if caching songs by Browser.GetSongs is implemented.
-	// Else, player tries to pull songs directly using Browser.GetAlbumSongs.
-	// GetAlbumSongs is slower method (when album contains less songs then paged song list).
-	CanCacheSongs() bool
-}

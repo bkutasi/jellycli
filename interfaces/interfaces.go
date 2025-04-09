@@ -23,7 +23,6 @@ import (
 	"errors"
 	"math"
 	"time"
-	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -125,15 +124,6 @@ type Paging struct {
 }
 
 // DefaultPaging returns paging with page 0 and default pagesize
-func DefaultPaging() Paging {
-	return Paging{
-		TotalItems:  0,
-		TotalPages:  0,
-		CurrentPage: 0,
-		PageSize:    config.PageSize,
-	}
-}
-
 // SetTotalItems calculates number of pages for current page size
 func (p *Paging) SetTotalItems(count int) {
 	p.TotalItems = count
@@ -258,7 +248,7 @@ type QueryOpts struct {
 
 func DefaultQueryOpts() *QueryOpts {
 	return &QueryOpts{
-		Paging: DefaultPaging(),
+		Paging: Paging{},
 		Filter: Filter{},
 		Sort: Sort{
 			Field: SortByName,
