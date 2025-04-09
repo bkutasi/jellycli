@@ -24,6 +24,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/crypto/ssh/terminal"
@@ -41,7 +42,8 @@ var configIsEmpty bool
 
 type Config struct {
 	Jellyfin Jellyfin `yaml:"jellyfin"`
-	Player Player `yaml:"player"`
+	Player   Player `yaml:"player"`
+	ClientID string `yaml:"client_id"`
 }
 
 
@@ -157,6 +159,7 @@ func ConfigFromViper() error {
 			DisablePlaybackReporting: viper.GetBool("player.disable_playback_reporting"), // Read new field
 			LocalCacheDir:            viper.GetString("player.local_cache_dir"),
 		},
+		ClientID: viper.GetString("client_id"),
 	}
 
 	if AppConfig.Jellyfin.Url == "" {
@@ -216,5 +219,31 @@ func UpdateViper() {
 	viper.Set("player.disable_playback_reporting", AppConfig.Player.DisablePlaybackReporting) // Save new field
 	viper.Set("player.audio_buffering_ms", AppConfig.Player.AudioBufferingMs)
 	viper.Set("player.local_cache_dir", AppConfig.Player.LocalCacheDir)
+	viper.Set("client_id", AppConfig.ClientID)
+}
 
+// GetClientID retrieves the unique client ID for this instance.
+// If an ID doesn't exist in the config, it generates a new UUID,
+// saves it to the config, and returns it.
+func GetClientID() (string, error) {
+	if AppConfig.ClientID != "" {
+		return AppConfig.ClientID, nil
+	}
+
+	newID, err := uuid.NewRandom()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate client UUID: %w", err)
+	}
+
+	AppConfig.ClientID = newID.String()
+	logrus.Infof("Generated new Client ID: %s", AppConfig.ClientID)
+
+	err = SaveConfig()
+	if err != nil {
+		// Log the error but proceed, as the ID is generated, just not saved yet.
+		// It will be saved on next successful save.
+		logrus.Errorf("Failed to save config after generating Client ID: %v", err)
+	}
+
+	return AppConfig.ClientID, nil
 }

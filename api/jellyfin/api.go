@@ -24,7 +24,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/denisbrodbeck/machineid"
 	"github.com/gorilla/websocket"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -147,7 +146,7 @@ func NewJellyfin(conf *config.Jellyfin, provider config.KeyValueProvider) (*Jell
 		jf.musicView = conf.MusicView
 	}
 
-	id, err := machineid.ProtectedID(config.AppName)
+	id, err := config.GetClientID()
 	if err != nil {
 		return jf, fmt.Errorf("failed to get unique host id: %v", err)
 	}

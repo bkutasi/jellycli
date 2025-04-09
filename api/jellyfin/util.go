@@ -26,9 +26,6 @@ import (
 	"runtime"
 	"strconv"
 	"crypto/rand"
-
-
-	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
 	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/interfaces"
@@ -255,7 +252,7 @@ func (jf *Jellyfin) ReportCapabilities() error {
 }
 
 func (jf *Jellyfin) authHeader() string {
-	id, err := machineid.ProtectedID(config.AppName)
+	id, err := config.GetClientID()
 	if err != nil {
 		logrus.Errorf("get unique host id: %v", err)
 		id = RandomKey(30)
