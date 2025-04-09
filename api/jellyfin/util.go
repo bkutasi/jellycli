@@ -25,18 +25,20 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"crypto/rand"
+
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/sirupsen/logrus"
 	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/interfaces"
 	"tryffel.net/go/jellycli/models"
-	"tryffel.net/go/jellycli/util"
 )
 
 const (
 	ticksToSecond = int64(10000000)
 )
+
 
 type infoResponse struct {
 	ServerName      string `json:"ServerName"`
@@ -256,7 +258,7 @@ func (jf *Jellyfin) authHeader() string {
 	id, err := machineid.ProtectedID(config.AppName)
 	if err != nil {
 		logrus.Errorf("get unique host id: %v", err)
-		id = util.RandomKey(30)
+		id = RandomKey(30)
 	}
 	hostname := jf.deviceName()
 
@@ -286,4 +288,18 @@ func (jf *Jellyfin) GetLink(item models.Item) string {
 	}
 
 	return url
+}
+
+
+const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+
+func RandomKey(length int) string {
+	r := rand.Reader
+	data := make([]byte, length)
+	r.Read(data)
+
+	for i, b := range data {
+		data[i] = letters[b%byte(len(letters))]
+	}
+	return string(data)
 }

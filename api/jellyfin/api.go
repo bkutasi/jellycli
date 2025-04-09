@@ -39,7 +39,6 @@ import (
 	"tryffel.net/go/jellycli/interfaces"
 	"tryffel.net/go/jellycli/models"
 	"tryffel.net/go/jellycli/task"
-	"tryffel.net/go/jellycli/util"
 )
 
 type socketState int
@@ -153,7 +152,7 @@ func NewJellyfin(conf *config.Jellyfin, provider config.KeyValueProvider) (*Jell
 		return jf, fmt.Errorf("failed to get unique host id: %v", err)
 	}
 	jf.DeviceId = id
-	jf.SessionId = util.RandomKey(15)
+	jf.SessionId = RandomKey(15)
 	jf.Name = "api"
 	jf.SetLoop(jf.loop)
 

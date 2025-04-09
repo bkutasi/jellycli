@@ -25,7 +25,6 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
-	"tryffel.net/go/jellycli/util"
 )
 
 // Tasker can be run on background
@@ -134,6 +133,19 @@ func (t *Task) recoverPanic() {
 			stack = stack + "\n" + v
 		}
 
-		util.Exit(logrus.WithField("Stacktrace", stack), fmt.Sprintf("Task '%s' panic: %s\n", t.Name, r))
+		Exit(logrus.WithField("Stacktrace", stack), fmt.Sprintf("Task '%s' panic: %s\n", t.Name, r))
+	}
+}
+
+
+// Exit logs exit message to log and calls os.exit. This function can be overridden for testing purposes.
+// LogrusInstance allows overriding default instance to pass additional arguments e.g. with
+// logrus.WithField. It can also be set to nil.
+var Exit = func(logrusInstance *logrus.Entry, msg string) {
+	println("Fatal error, see log file")
+	if logrusInstance != nil {
+		logrusInstance.Fatalf(msg)
+	} else {
+		logrus.Fatal(msg)
 	}
 }
