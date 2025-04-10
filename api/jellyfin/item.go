@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"tryffel.net/go/jellycli/interfaces"
+	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -266,7 +266,7 @@ func (jf *Jellyfin) GetFavoriteArtists() ([]*models.Artist, error) {
 	return artists, nil
 }
 
-func (jf *Jellyfin) GetFavoriteAlbums(paging interfaces.Paging) ([]*models.Album, int, error) {
+func (jf *Jellyfin) GetFavoriteAlbums(paging models.Paging) ([]*models.Album, int, error) {
 	params := jf.defaultParams()
 	params.enableRecursive()
 	params.setParentId(jf.musicView)
@@ -348,7 +348,7 @@ func (jf *Jellyfin) GetPlaylistSongs(playlist models.Id) ([]*models.Song, error)
 }
 
 // GetSongs returns songs by paging, and returns total number of songs
-func (jf *Jellyfin) GetSongs(query *interfaces.QueryOpts) ([]*models.Song, int, error) {
+func (jf *Jellyfin) GetSongs(query *models.QueryOpts) ([]*models.Song, int, error) {
 	params := *jf.defaultParams()
 	params.setIncludeTypes(mediaTypeSong)
 	params.enableRecursive()
@@ -426,7 +426,7 @@ func (jf *Jellyfin) GetSongsById(ids []models.Id) ([]*models.Song, error) {
 }
 
 // getArtists return artists defined by paging and total number of artists
-func (jf *Jellyfin) GetArtists(query *interfaces.QueryOpts) (artistList []*models.Artist, numRecords int, err error) {
+func (jf *Jellyfin) GetArtists(query *models.QueryOpts) (artistList []*models.Artist, numRecords int, err error) {
 	params := *jf.defaultParams()
 	params.enableRecursive()
 	params.setPaging(query.Paging)
@@ -443,7 +443,7 @@ func (jf *Jellyfin) GetArtists(query *interfaces.QueryOpts) (artistList []*model
 }
 
 // getArtists return artists defined by paging and total number of artists
-func (jf *Jellyfin) getArtists(paging interfaces.Paging) (artistList []*models.Artist, numRecords int, err error) {
+func (jf *Jellyfin) getArtists(paging models.Paging) (artistList []*models.Artist, numRecords int, err error) {
 	params := *jf.defaultParams()
 	params.enableRecursive()
 	params.setSorting("SortName", "Ascending")
@@ -459,7 +459,7 @@ func (jf *Jellyfin) getArtists(paging interfaces.Paging) (artistList []*models.A
 	return jf.parseArtists(resp)
 }
 
-func (jf *Jellyfin) GetAlbumArtists(query *interfaces.QueryOpts) (artistList []*models.Artist, numRecords int, err error) {
+func (jf *Jellyfin) GetAlbumArtists(query *models.QueryOpts) (artistList []*models.Artist, numRecords int, err error) {
 	params := *jf.defaultParams()
 	params.enableRecursive()
 	params.setFilter(models.TypeArtist, query.Filter)
@@ -511,7 +511,7 @@ func (jf *Jellyfin) parseAlbums(resp io.Reader) (albumList []*models.Album, numR
 }
 
 // GetAlbums returns albums with given paging. It also returns number of all albums
-func (jf *Jellyfin) GetAlbums(opts *interfaces.QueryOpts) (albumList []*models.Album, numRecords int, err error) {
+func (jf *Jellyfin) GetAlbums(opts *models.QueryOpts) (albumList []*models.Album, numRecords int, err error) {
 	params := *jf.defaultParams()
 	params.enableRecursive()
 	params.setPaging(opts.Paging)
@@ -564,7 +564,7 @@ func (jf *Jellyfin) GetSimilarAlbums(album models.Id) ([]*models.Album, error) {
 
 }
 
-func (jf *Jellyfin) GetGenres(paging interfaces.Paging) ([]*models.IdName, int, error) {
+func (jf *Jellyfin) GetGenres(paging models.Paging) ([]*models.IdName, int, error) {
 	params := jf.defaultParams()
 	params.enableRecursive()
 	params.setSorting("SortName", "Ascending")

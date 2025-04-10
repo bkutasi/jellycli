@@ -38,6 +38,7 @@ import (
 	"tryffel.net/go/jellycli/config"
 	"tryffel.net/go/jellycli/player"
 	"tryffel.net/go/jellycli/task"
+	"tryffel.net/go/jellycli/interfaces"
 )
 
 var cfgFile string
@@ -155,7 +156,7 @@ func initLogging() error {
 // --- Application Lifecycle Logic ---
 
 type app struct {
-	server      api.MediaServer
+	server      interfaces.Api // Use the common interface
 	player      *player.Player
 	// logfile     *os.File // Removed, logging goes to Stderr
 }

@@ -21,6 +21,7 @@ package interfaces
 import (
 	"io"
 	"tryffel.net/go/jellycli/models"
+	"tryffel.net/go/jellycli/config"
 )
 
 type ApiPlaybackEvent string
@@ -48,6 +49,14 @@ const (
 type Api interface {
 	ReportProgress(state *ApiPlaybackState) error
 	GetSongDirect(id string, codec string) (io.ReadCloser, error)
+	Stream(song *models.Song) (io.ReadCloser, AudioFormat, error)
+	GetAlbum(id models.Id) (*models.Album, error)
+	GetArtist(id models.Id) (*models.Artist, error)
+	GetImageUrl(item models.Id, itemType models.ItemType) string
+	GetConfig() config.Backend
+	ConnectionOk() error
+	Start() error
+	Stop() error
 }
 
 //Playbackstate reports playback back to server

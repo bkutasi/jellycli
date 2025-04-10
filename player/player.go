@@ -56,24 +56,24 @@ type Player struct {
 	downloadingSong bool
 
 	songComplete   chan bool
-	audioUpdated   chan interfaces.AudioStatus
+	audioUpdated   chan models.AudioStatus
 	songDownloaded chan songMetadata
 
 	nextSong *songMetadata
 
-	api              api.MediaServer
+	api              interfaces.Api // Use the interface from the interfaces package
 	remoteController api.RemoteController
 
 	lastApiReport time.Time
 }
 
 // initialize new player. This also initializes faiface.Speaker, which should be initialized only once.
-func NewPlayer(browser api.MediaServer) (*Player, error) {
+func NewPlayer(browser interfaces.Api) (*Player, error) { // Use the interface from the interfaces package
 	var err error
 	p := &Player{
 		lock:           &sync.RWMutex{},
 		songComplete:   make(chan bool, 3),
-		audioUpdated:   make(chan interfaces.AudioStatus, 3),
+		audioUpdated:   make(chan models.AudioStatus, 3),
 		songDownloaded: make(chan songMetadata, 3),
 		api:            browser,
 	}
@@ -143,14 +143,14 @@ func (p *Player) loop() {
 		case <-ticker.C:
 			// periodically update status, this will push status to p.audioUpdated
 			p.Audio.updateStatus()
-			if p.status.Song != nil && p.status.State == interfaces.AudioStatePlaying {
+			if p.status.Song != nil && p.status.State == models.AudioStatePlaying {
 				if (p.status.Song.Duration-p.status.SongPast.Seconds()) < 5 &&
 					!p.isDownloadingSong() && p.nextSong == nil && len(p.Queue.GetQueue()) >= 2 {
 					p.downloadSong(1)
 				}
 			}
 		case metadata := <-p.songDownloaded:
-			if p.status.State == interfaces.AudioStateStopped {
+			if p.status.State == models.AudioStateStopped {
 				// download complete, send to audio
 				err := p.Audio.playSongFromReader(metadata)
 				if err != nil {
@@ -256,7 +256,7 @@ func (p *Player) Previous() {
 }
 
 // report audio status to server
-func (p *Player) audioCallback(status interfaces.AudioStatus) {
+func (p *Player) audioCallback(status models.AudioStatus) {
 	// Skip reporting if disabled in config
 	if config.AppConfig.Player.DisablePlaybackReporting {
 		return
@@ -266,12 +266,12 @@ func (p *Player) audioCallback(status interfaces.AudioStatus) {
 	lastTime := p.lastApiReport
 	p.lock.RUnlock()
 
-	if time.Now().Sub(lastTime) < time.Millisecond*9500 && status.Action == interfaces.AudioActionTimeUpdate {
+	if time.Now().Sub(lastTime) < time.Millisecond*9500 && status.Action == models.AudioActionTimeUpdate {
 		// jellyfin server instructs to update every 10 sec
 		return
 	}
 
-	if status.State == interfaces.AudioStateStopped && status.Action == interfaces.AudioActionTimeUpdate {
+	if status.State == models.AudioStateStopped && status.Action == models.AudioActionTimeUpdate {
 		// don't report TimeUpdate if player is stopped
 		return
 	}
@@ -292,25 +292,25 @@ func (p *Player) audioCallback(status interfaces.AudioStatus) {
 	}
 
 	switch status.Action {
-	case interfaces.AudioActionStop:
-		apiStatus.Event = interfaces.EventStop
-	case interfaces.AudioActionPlay:
+	case models.AudioActionStop:
+		apiStatus.Event = interfaces.EventStop // Reverted back to interfaces
+	case models.AudioActionPlay:
 		apiStatus.Event = interfaces.EventStart
-	case interfaces.AudioActionNext:
+	case models.AudioActionNext:
 		apiStatus.Event = interfaces.EventAudioTrackChange
-	case interfaces.AudioActionPrevious:
+	case models.AudioActionPrevious:
 		apiStatus.Event = interfaces.EventAudioTrackChange
-	case interfaces.AudioActionSetVolume:
+	case models.AudioActionSetVolume:
 		apiStatus.Event = interfaces.EventVolumeChange
-	case interfaces.AudioActionTimeUpdate:
+	case models.AudioActionTimeUpdate:
 		apiStatus.Event = interfaces.EventTimeUpdate
-	case interfaces.AudioActionPlayPause:
+	case models.AudioActionPlayPause:
 		if status.Paused {
 			apiStatus.Event = interfaces.EventPause
 		} else {
 			apiStatus.Event = interfaces.EventUnpause
 		}
-	case interfaces.AudioActionShuffleChanged:
+	case models.AudioActionShuffleChanged:
 		apiStatus.Event = interfaces.EventShuffleModeChange
 	default:
 		apiStatus.Event = interfaces.EventTimeUpdate
@@ -330,9 +330,14 @@ func (p *Player) audioCallback(status interfaces.AudioStatus) {
 		apiStatus.PlaylistLength = status.Song.Duration
 	}
 	f := func() {
-		err := p.api.ReportProgress(apiStatus)
-		if err != nil {
-			logrus.Errorf("report audio progress to server: %v", err)
+		// Type assert p.api to interfaces.Api to call ReportProgress
+		if reporter, ok := p.api.(interfaces.Api); ok {
+			err := reporter.ReportProgress(apiStatus)
+			if err != nil {
+				logrus.Errorf("report audio progress to server: %v", err)
+			}
+		} else {
+			logrus.Warnf("MediaServer does not implement ReportProgress")
 		}
 	}
 	go f()
@@ -341,14 +346,14 @@ func (p *Player) audioCallback(status interfaces.AudioStatus) {
 func (p *Player) queueChanged(queue []*models.Song) {
 	// if player has nothing to play, start download
 	state := p.Audio.getStatus()
-	if state.State == interfaces.AudioStateStopped && len(queue) > 0 {
+	if state.State == models.AudioStateStopped && len(queue) > 0 {
 		go p.downloadSong(0)
 	}
 }
 
 func (p *Player) Reorder(index int, left bool) bool {
 	// do not allow ongoing song to be reordered
-	if p.status.State == interfaces.AudioStatePlaying {
+	if p.status.State == models.AudioStatePlaying {
 		if index == 0 {
 			return false
 		}

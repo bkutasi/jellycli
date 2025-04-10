@@ -24,7 +24,7 @@ import (
 	"sort"
 	"sync"
 	"time"
-	"tryffel.net/go/jellycli/interfaces"
+	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -174,12 +174,12 @@ func (q *queueList) GetQueue() []*models.Song {
 	return songs
 }
 
-func (q *queueList) GetTotalDuration() interfaces.AudioTick {
+func (q *queueList) GetTotalDuration() models.AudioTick {
 	ms := 0
 	for _, v := range q.items {
 		ms += v.song.Duration
 	}
-	return interfaces.AudioTick(ms)
+	return models.AudioTick(ms)
 }
 
 func (q *queueList) Reorder(index1 int, down bool) {

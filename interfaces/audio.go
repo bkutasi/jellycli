@@ -18,25 +18,5 @@
 
 package interfaces
 
-type AudioFormat string
-
-func (a AudioFormat) String() string {
-	return string(a)
-}
-
-const (
-	AudioFormatFlac AudioFormat = "flac"
-	AudioFormatMp3  AudioFormat = "mp3"
-	AudioFormatOgg  AudioFormat = "ogg"
-	AudioFormatWav  AudioFormat = "wav"
-	// empty format, for errors
-	AudioFormatNil AudioFormat = ""
-)
-
-// SupportedAudioFormats
-var SupportedAudioFormats = []AudioFormat{
-	AudioFormatFlac,
-	AudioFormatMp3,
-	AudioFormatOgg,
-	AudioFormatWav,
-}
+// This file is intentionally left blank after refactoring.
+// AudioFormat definitions moved to player/audio.go

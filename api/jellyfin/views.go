@@ -21,7 +21,7 @@ package jellyfin
 import (
 	"encoding/json"
 	"fmt"
-	"tryffel.net/go/jellycli/interfaces"
+	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -72,7 +72,7 @@ func (jf *Jellyfin) GetLatestAlbums() ([]*models.Album, error) {
 	return albums, nil
 }
 
-func (jf *Jellyfin) GetRecentlyPlayed(paging interfaces.Paging) ([]*models.Song, int, error) {
+func (jf *Jellyfin) GetRecentlyPlayed(paging models.Paging) ([]*models.Song, int, error) {
 	params := *jf.defaultParams()
 
 	params.setIncludeTypes(mediaTypeSong)

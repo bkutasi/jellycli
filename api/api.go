@@ -49,12 +49,12 @@ type Streamer interface {
 type Browser interface {
 
 	// GetArtists returns all artists
-	GetArtists(query *interfaces.QueryOpts) ([]*models.Artist, int, error)
+	GetArtists(query *models.QueryOpts) ([]*models.Artist, int, error)
 
 	// GetAlbumArtists returns artists that are marked as album artists. See GetArtists.
-	GetAlbumArtists(query *interfaces.QueryOpts) ([]*models.Artist, int, error)
+	GetAlbumArtists(query *models.QueryOpts) ([]*models.Artist, int, error)
 	// GetAlbums gets albums with given paging. Only PageSize and CurrentPage are used. Total count is returned
-	GetAlbums(query *interfaces.QueryOpts) ([]*models.Album, int, error)
+	GetAlbums(query *models.QueryOpts) ([]*models.Album, int, error)
 
 	// GetArtistAlbums returns albums that artist takes part in.
 	GetArtistAlbums(artist models.Id) ([]*models.Album, error)
@@ -73,13 +73,13 @@ type Browser interface {
 	GetSimilarAlbums(album models.Id) ([]*models.Album, error)
 
 	// GetRecentlyPlayed returns songs that have been played last.
-	GetRecentlyPlayed(paging interfaces.Paging) ([]*models.Song, int, error)
+	GetRecentlyPlayed(paging models.Paging) ([]*models.Song, int, error)
 
 	// GetSongs returns songs by paging. It also returns total number of songs.
-	GetSongs(query *interfaces.QueryOpts) ([]*models.Song, int, error)
+	GetSongs(query *models.QueryOpts) ([]*models.Song, int, error)
 
 	// GetGenres returns music genres with paging. Return genres, total genres and possible error
-	GetGenres(paging interfaces.Paging) ([]*models.IdName, int, error)
+	GetGenres(paging models.Paging) ([]*models.IdName, int, error)
 
 	// GetAlbumArtist returns main artist for album.
 	GetAlbumArtist(album *models.Album) (*models.Artist, error)
@@ -124,9 +124,6 @@ type RemoteServer interface {
 
 	// GetConfig returns backend config that is saved to config file.
 	GetConfig() config.Backend
-
-	// ReportProgress reports player progress to remote controller.
-	ReportProgress(state *interfaces.ApiPlaybackState) error
 
 	// Start starts background service for remote server, if any.
 	Start() error

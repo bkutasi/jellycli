@@ -30,7 +30,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
-	"tryffel.net/go/jellycli/interfaces"
+	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -145,7 +145,7 @@ func (jf *Jellyfin) parseInboudMessage(buff *[]byte) error {
 				if err != nil {
 					logrus.Error("Invalid volume parameter")
 				} else {
-					volume := interfaces.AudioVolume(volume)
+					volume := models.AudioVolume(volume)
 					jf.player.SetVolume(volume)
 				}
 			case "ToggleMute":

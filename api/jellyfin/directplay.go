@@ -31,6 +31,12 @@ func (jf *Jellyfin) Download(song *models.Song) (io.ReadCloser, interfaces.Audio
 	return jf.Stream(song)
 }
 
+// GetSongDirect retrieves a direct stream URL for a song (Placeholder - needs proper implementation)
+func (jf *Jellyfin) GetSongDirect(id string, codec string) (io.ReadCloser, error) {
+	// TODO: Implement fetching song by ID and getting stream URL
+	return nil, fmt.Errorf("GetSongDirect not fully implemented for Jellyfin")
+}
+
 func (jf *Jellyfin) Stream(song *models.Song) (rc io.ReadCloser, format interfaces.AudioFormat, err error) {
 	format = interfaces.AudioFormatNil
 	params := jf.defaultParams()

@@ -31,14 +31,15 @@ import (
 	"io"
 	"time"
 	"tryffel.net/go/jellycli/config"
-	"tryffel.net/go/jellycli/interfaces"
+	"tryffel.net/go/jellycli/interfaces" // Added interfaces import
+	"tryffel.net/go/jellycli/models" // Added models import
 )
 
-type audioFormat string
+// songMetadata struct moved to player/player.go
 
 // Audio manages playing song and implements interfaces.Player
 type Audio struct {
-	status interfaces.AudioStatus
+	status models.AudioStatus // Updated to models.AudioStatus
 
 	// todo: we need multiple streamers to allow seamlessly running next song
 	streamer beep.StreamSeekCloser
@@ -52,7 +53,7 @@ type Audio struct {
 
 	songCompleteFunc func()
 
-	statusCallbacks []func(status interfaces.AudioStatus)
+	statusCallbacks []func(status models.AudioStatus) // Updated to models.AudioStatus
 
 	currentSampleRate int
 }
@@ -71,13 +72,13 @@ func newAudio() *Audio {
 			Silent:   false,
 		},
 		mixer:           &beep.Mixer{},
-		statusCallbacks: make([]func(status interfaces.AudioStatus), 0),
+		statusCallbacks: make([]func(status models.AudioStatus), 0), // Updated to models.AudioStatus
 	}
 	a.ctrl.Streamer = a.mixer
 	a.ctrl.Paused = false
 	a.volume.Streamer = a.ctrl
 	a.volume.Silent = false
-	a.status.Volume = 100
+	a.status.Volume = 100 // Assuming models.AudioVolume is compatible
 
 	a.currentSampleRate = config.AudioSamplingRate
 	return a
@@ -102,11 +103,11 @@ func (a *Audio) SetShuffle(shuffle bool) {
 	speaker.Lock()
 	defer speaker.Unlock()
 	a.status.Shuffle = shuffle
-	a.status.Action = interfaces.AudioActionShuffleChanged
+	a.status.Action = models.AudioActionShuffleChanged // Updated to models.AudioAction
 	go a.flushStatus()
 }
 
-func (a *Audio) getStatus() interfaces.AudioStatus {
+func (a *Audio) getStatus() models.AudioStatus { // Updated return type
 	speaker.Lock()
 	defer speaker.Unlock()
 	return a.status
@@ -116,6 +117,7 @@ func (a *Audio) getStatus() interfaces.AudioStatus {
 func (a *Audio) PlayPause() {
 	speaker.Lock()
 	if a.ctrl == nil {
+		speaker.Unlock()
 		return
 	}
 	state := !a.ctrl.Paused
@@ -126,7 +128,7 @@ func (a *Audio) PlayPause() {
 	}
 	a.ctrl.Paused = state
 	a.status.Paused = state
-	a.status.Action = interfaces.AudioActionPlayPause
+	a.status.Action = models.AudioActionPlayPause // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
@@ -136,11 +138,12 @@ func (a *Audio) Pause() {
 	logrus.Info("Pause audio")
 	speaker.Lock()
 	if a.ctrl == nil {
+		speaker.Unlock()
 		return
 	}
 	a.ctrl.Paused = true
 	a.status.Paused = true
-	a.status.Action = interfaces.AudioActionPlayPause
+	a.status.Action = models.AudioActionPlayPause // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
@@ -150,11 +153,12 @@ func (a *Audio) Continue() {
 	logrus.Info("Continue audio")
 	speaker.Lock()
 	if a.ctrl == nil {
+		speaker.Unlock()
 		return
 	}
 	a.ctrl.Paused = false
 	a.status.Paused = false
-	a.status.Action = interfaces.AudioActionPlayPause
+	a.status.Action = models.AudioActionPlayPause // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
@@ -163,8 +167,8 @@ func (a *Audio) Continue() {
 func (a *Audio) StopMedia() {
 	logrus.Infof("Stop audio")
 	speaker.Lock()
-	a.status.State = interfaces.AudioStateStopped
-	a.status.Action = interfaces.AudioActionStop
+	a.status.State = models.AudioStateStopped // Updated to models.AudioState
+	a.status.Action = models.AudioActionStop // Updated to models.AudioAction
 	a.ctrl.Paused = false
 	a.status.Paused = false
 	speaker.Unlock()
@@ -183,7 +187,7 @@ func (a *Audio) StopMedia() {
 func (a *Audio) Next() {
 	logrus.Info("Next song")
 	speaker.Lock()
-	a.status.Action = interfaces.AudioActionNext
+	a.status.Action = models.AudioActionNext // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
@@ -192,22 +196,35 @@ func (a *Audio) Next() {
 func (a *Audio) Previous() {
 	logrus.Info("Previous song")
 	speaker.Lock()
-	a.status.Action = interfaces.AudioActionPrevious
+	a.status.Action = models.AudioActionPrevious // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
 
 // Seek seeks given ticks. If there is no audio, do nothing.
-func (a *Audio) Seek(ticks interfaces.AudioTick) {
+// TODO: Implement Seek functionality using streamer.Seek()
+func (a *Audio) Seek(ticks models.AudioTick) { // Updated parameter type
+	logrus.Warnf("Seek functionality not yet implemented (seek %d ms)", ticks.MilliSeconds())
+	// Example (needs proper calculation and locking):
+	// speaker.Lock()
+	// if a.streamer != nil {
+	// 	 newPos := a.streamer.Position() + a.currentSampleRate.N(ticks * time.Millisecond)
+	//   if newPos < a.streamer.Len() && newPos >= 0 {
+	//	    a.streamer.Seek(newPos)
+	//   }
+	// }
+	// a.status.Action = models.AudioActionSeek // Updated to models.AudioAction
+	// speaker.Unlock()
+	// go a.flushStatus()
 }
 
 // AddStatusCallback adds a callback that gets called every time audio status is changed, or after certain time.
-func (a *Audio) AddStatusCallback(cb func(status interfaces.AudioStatus)) {
+func (a *Audio) AddStatusCallback(cb func(status models.AudioStatus)) { // Updated parameter type
 	a.statusCallbacks = append(a.statusCallbacks, cb)
 }
 
 // SetVolume sets volume to given level.
-func (a *Audio) SetVolume(volume interfaces.AudioVolume) {
+func (a *Audio) SetVolume(volume models.AudioVolume) { // Updated parameter type
 	decibels := float64(volumeTodB(int(volume)))
 	logrus.Debugf("Set volume to %d %s -> %.2f Db", volume, "%", decibels)
 	speaker.Lock()
@@ -216,17 +233,17 @@ func (a *Audio) SetVolume(volume interfaces.AudioVolume) {
 	if decibels <= config.AudioMinVolumedB {
 		a.volume.Silent = true
 		a.volume.Volume = config.AudioMinVolumedB
-		a.status.Volume = interfaces.AudioVolumeMin
+		a.status.Volume = models.AudioVolumeMin // Updated const
 	} else if decibels >= config.AudioMaxVolumedB {
 		a.volume.Volume = config.AudioMaxVolumedB
 		a.volume.Silent = false
-		a.status.Volume = interfaces.AudioVolumeMax
+		a.status.Volume = models.AudioVolumeMax // Updated const
 	} else {
 		a.volume.Silent = false
 		a.volume.Volume = decibels
 		a.status.Volume = volume
 	}
-	a.status.Action = interfaces.AudioActionSetVolume
+	a.status.Action = models.AudioActionSetVolume // Updated to models.AudioAction
 	speaker.Unlock()
 	go a.flushStatus()
 }
@@ -241,9 +258,11 @@ func (a *Audio) SetMute(muted bool) {
 	}
 	speaker.Lock()
 	if a.ctrl == nil {
+		speaker.Unlock()
 		return
 	}
-	a.ctrl.Paused = false
+	// Don't pause when muting/unmuting
+	// a.ctrl.Paused = false
 	a.volume.Silent = muted
 	a.status.Muted = muted
 	speaker.Unlock()
@@ -278,24 +297,30 @@ func (a *Audio) closeOldStream() error {
 		if streamErr != nil {
 			if streamErr != io.EOF {
 				logrus.Errorf("streamer error: %v", streamErr)
+				// Assign streamErr to err only if it's not EOF
+				err = streamErr
 			} else {
-				logrus.Warning("got streamer error EOF")
-				err = nil
+				logrus.Debug("Streamer ended with EOF (expected)")
 			}
 		}
-		err = a.streamer.Close()
-		if err != nil {
-			if err == io.EOF {
-				// pass
+		closeErr := a.streamer.Close()
+		if closeErr != nil {
+			if closeErr != io.EOF {
+				logrus.Errorf("close streamer error: %v", closeErr)
+				// Prioritize close error if streamErr was nil or EOF
+				if err == nil || err == io.EOF {
+					err = fmt.Errorf("close streamer: %v", closeErr)
+				}
 			} else {
-				err = fmt.Errorf("close streamer: %v", err)
+				logrus.Debug("Streamer closed with EOF")
 			}
 		} else {
 			logrus.Debug("closed old streamer")
 		}
 		a.streamer = nil
 	} else {
-		err = fmt.Errorf("audio stream completed but streamer is nil")
+		// This might not be an error if StopMedia was called before completion
+		logrus.Debug("audio stream completed but streamer is already nil")
 	}
 	return err
 }
@@ -305,7 +330,7 @@ func (a *Audio) updateStatus() {
 	past := a.getPastTicks()
 	speaker.Lock()
 	a.status.SongPast = past
-	a.status.Action = interfaces.AudioActionTimeUpdate
+	a.status.Action = models.AudioActionTimeUpdate // Updated to models.AudioAction
 	speaker.Unlock()
 	a.flushStatus()
 }
@@ -325,52 +350,90 @@ func (a *Audio) playSongFromReader(metadata songMetadata) error {
 	var songFormat beep.Format
 	var streamer beep.StreamSeekCloser
 	var err error
-	switch metadata.format {
-	case interfaces.AudioFormatMp3:
+	switch metadata.format { // Use interfaces.AudioFormat
+	case interfaces.AudioFormatMp3: // Use interfaces const
 		streamer, songFormat, err = mp3.Decode(metadata.reader)
-	case interfaces.AudioFormatFlac:
+	case interfaces.AudioFormatFlac: // Use interfaces const
 		streamer, songFormat, err = flac.Decode(metadata.reader)
-	case interfaces.AudioFormatWav:
+	case interfaces.AudioFormatWav: // Use interfaces const
 		streamer, songFormat, err = wav.Decode(metadata.reader)
-	case interfaces.AudioFormatOgg:
+	case interfaces.AudioFormatOgg: // Use interfaces const
 		streamer, songFormat, err = vorbis.Decode(metadata.reader)
 	default:
+		// Close the reader if format is unknown
+		if metadata.reader != nil {
+			metadata.reader.Close()
+		}
 		return fmt.Errorf("unknown audio format: %s", metadata.format)
 	}
 	if err != nil {
+		// Close the reader if decoding failed
+		if metadata.reader != nil {
+			metadata.reader.Close()
+		}
 		return fmt.Errorf("decode audio stream: %v", err)
 	}
 
 	logrus.Debugf("Song %s samplerate: %d Hz", metadata.song.Name, songFormat.SampleRate.N(time.Second))
-	sampleRate := songFormat.SampleRate.N(time.Second)
-	if a.currentSampleRate != sampleRate {
-		logrus.Debugf("Set samplerate to %d kHz", sampleRate/1000)
-		err = speaker.Init(songFormat.SampleRate, sampleRate/1000*
-			int(config.AudioBufferPeriod.Seconds()*1000))
+	sampleRate := songFormat.SampleRate
+	if a.currentSampleRate != sampleRate.N(time.Second) {
+		logrus.Debugf("Set samplerate to %d Hz", sampleRate.N(time.Second))
+		// Re-initialize speaker with the new sample rate
+		// Note: This might cause a small gap or click in audio playback
+		speaker.Clear() // Clear buffer before re-init
+		err = speaker.Init(sampleRate, sampleRate.N(time.Second)/1000*
+			int(config.AudioBufferPeriod.Milliseconds()))
 		if err != nil {
-			logrus.Errorf("Update sample rate (%d -> %d): %v", a.currentSampleRate, sampleRate, err)
+			logrus.Errorf("Update sample rate (%d -> %d): %v", a.currentSampleRate, sampleRate.N(time.Second), err)
+			// Attempt to continue with old sample rate? Or return error?
+			// For now, log error and continue, but audio might be distorted.
+			// streamer.Close() // Close the successfully decoded streamer
+			// return fmt.Errorf("failed to re-initialize speaker for sample rate %d: %v", sampleRate.N(time.Second), err)
 		} else {
-			a.currentSampleRate = sampleRate
+			a.currentSampleRate = sampleRate.N(time.Second)
 		}
 	}
 	logrus.Debug("Setting new streamer from ", metadata.format.String())
 	if streamer == nil {
-		return fmt.Errorf("empty streamer")
+		return fmt.Errorf("empty streamer after decode") // Should not happen if err is nil
 	}
-	stream := beep.Seq(streamer, beep.Callback(a.streamCompleted))
+
+	// streamer variable holds the original StreamSeekCloser (mp3.Decode, etc.)
+	// finalStreamer will hold the stream to be played (potentially resampled)
+	var finalStreamer beep.Streamer = streamer // Start with the original streamer
+
+	// Ensure the streamer is resampled to the speaker's current sample rate if they differ
+	if songFormat.SampleRate != beep.SampleRate(a.currentSampleRate) {
+		logrus.Warnf("Resampling stream from %d Hz to %d Hz", songFormat.SampleRate.N(time.Second), a.currentSampleRate)
+		// Assign the *beep.Resampler (which is a beep.Streamer) to finalStreamer
+		finalStreamer = beep.Resample(4, songFormat.SampleRate, beep.SampleRate(a.currentSampleRate), streamer)
+	}
+
+	// Use finalStreamer (which is always a beep.Streamer) for playback sequence
+	stream := beep.Seq(finalStreamer, beep.Callback(a.streamCompleted))
 	speaker.Clear()
 	speaker.Lock()
 	old := a.streamer
 	a.mixer.Clear()
-	a.streamer = streamer
+	a.streamer = streamer // Store the original streamer for seeking? Or resampled? Let's store original for now.
 	a.mixer.Add(stream)
+	// Start playback unpaused
+	a.ctrl.Paused = false
+	a.status.Paused = false
 	speaker.Unlock()
+
+	// Close the old stream *after* unlocking to avoid deadlock potential
 	if old != nil {
-		err := old.Close()
-		if err != nil {
-			err = fmt.Errorf("failed to close old stream: %v", err)
+		closeErr := old.Close()
+		if closeErr != nil && closeErr != io.EOF {
+			logrus.Errorf("failed to close old stream: %v", closeErr)
+			// Don't overwrite the main error (if any)
+			if err == nil {
+				err = fmt.Errorf("failed to close old stream: %v", closeErr)
+			}
 		}
 	}
+
 	speaker.Play(a.volume)
 	speaker.Lock()
 
@@ -378,8 +441,8 @@ func (a *Audio) playSongFromReader(metadata songMetadata) error {
 	a.status.Album = metadata.album
 	a.status.Artist = metadata.artist
 	a.status.AlbumImageUrl = metadata.albumImageUrl
-	a.status.State = interfaces.AudioStatePlaying
-	a.status.Action = interfaces.AudioActionPlay
+	a.status.State = models.AudioStatePlaying // Updated to models.AudioState
+	a.status.Action = models.AudioActionPlay // Updated to models.AudioAction
 	speaker.Unlock()
 	a.flushStatus()
 	return err
@@ -396,12 +459,19 @@ func volumeTodB(volume int) float32 {
 }
 
 // how many ticks current track has played
-func (a *Audio) getPastTicks() interfaces.AudioTick {
+func (a *Audio) getPastTicks() models.AudioTick { // Updated return type
 	speaker.Lock()
 	defer speaker.Unlock()
-	if a.streamer == nil {
+	if a.streamer == nil || a.currentSampleRate == 0 {
 		return 0
 	}
-	left := a.streamer.Position() / config.AudioSamplingRate
-	return interfaces.AudioTick((time.Second * time.Duration(left)).Milliseconds())
+	// Use currentSampleRate for position calculation
+	position := a.streamer.Position()
+	if position < 0 { // Position might be -1 if streamer is invalid/closed
+		return 0
+	}
+	duration := time.Duration(position) * time.Second / time.Duration(a.currentSampleRate)
+	return models.AudioTick(duration.Milliseconds())
 }
+
+// AudioFormat definitions moved to interfaces/audio_format.go

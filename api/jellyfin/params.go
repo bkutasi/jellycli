@@ -20,7 +20,7 @@ package jellyfin
 
 import (
 	"strconv"
-	"tryffel.net/go/jellycli/interfaces"
+	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
 	"tryffel.net/go/jellycli/models"
 )
 
@@ -31,7 +31,7 @@ func (p *params) ptr() map[string]string {
 	return *p
 }
 
-func (p *params) setPaging(paging interfaces.Paging) {
+func (p *params) setPaging(paging models.Paging) {
 	ptr := p.ptr()
 	ptr["Limit"] = strconv.Itoa(paging.PageSize)
 	ptr["StartIndex"] = strconv.Itoa(paging.Offset())
@@ -59,41 +59,41 @@ func (p *params) setSorting(name string, order string) {
 	(*p)["SortOrder"] = order
 }
 
-func (p *params) setSortingByType(itemType models.ItemType, sort interfaces.Sort) {
+func (p *params) setSortingByType(itemType models.ItemType, sort models.Sort) {
 
 	field := "SortName"
 	order := "Ascending"
 
-	if sort.Mode == interfaces.SortAsc {
+	if sort.Mode == models.SortAsc {
 		order = "Ascending"
-	} else if sort.Mode == interfaces.SortDesc {
+	} else if sort.Mode == models.SortDesc {
 		order = "Descending"
 	}
 
 	switch sort.Field {
-	case interfaces.SortByDate:
+	case models.SortByDate:
 		field = "ProductionYear,ProductionYear,SortName"
-	case interfaces.SortByName:
+	case models.SortByName:
 		field = "SortName"
 		// Todo: following depend on item type
-	case interfaces.SortByAlbum:
+	case models.SortByAlbum:
 		field = "Album,SortName"
-	case interfaces.SortByArtist:
+	case models.SortByArtist:
 		field = "Artist,SortName"
-	case interfaces.SortByPlayCount:
+	case models.SortByPlayCount:
 		field = "PlayCount,SortName"
-	case interfaces.SortByRandom:
+	case models.SortByRandom:
 		field = "Random,SortName"
-	case interfaces.SortByLatest:
+	case models.SortByLatest:
 		field = "DateCreated,SortName"
-	case interfaces.SortByLastPlayed:
+	case models.SortByLastPlayed:
 		field = "DatePlayed,SortName"
 	}
 
 	p.setSorting(field, order)
 }
 
-func (p *params) setFilter(tItem models.ItemType, filter interfaces.Filter) {
+func (p *params) setFilter(tItem models.ItemType, filter models.Filter) {
 	f := ""
 	if filter.Favorite {
 		f = appendFilter(f, "IsFavorite", ",")
@@ -102,9 +102,9 @@ func (p *params) setFilter(tItem models.ItemType, filter interfaces.Filter) {
 	// jellyfin server does not seem to like sorting artists by play status.
 	// https://github.com/jellyfin/jellyfin/issues/2672
 	if tItem != models.TypeArtist {
-		if filter.FilterPlayed == interfaces.FilterIsPlayed {
+		if filter.FilterPlayed == models.FilterIsPlayed {
 			f = appendFilter(f, "IsPlayed", ",")
-		} else if filter.FilterPlayed == interfaces.FilterIsNotPlayed {
+		} else if filter.FilterPlayed == models.FilterIsNotPlayed {
 			f = appendFilter(f, "IsUnPlayed", ",")
 		}
 	}
