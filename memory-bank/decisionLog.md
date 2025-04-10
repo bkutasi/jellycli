@@ -21,3 +21,8 @@
     *   Decision: Analyzed usages and removed non-essential getters (`GetItem`, `GetFavoriteArtists`, `GetFavoriteAlbums`, `GetGenreAlbums`, etc.) and related helpers, keeping only `GetSongsById`.
     *   Rationale: Further align the codebase with headless operation requirements by removing functions solely related to browsing/UI features (favorites, genres, general item info).
     *   Implications: `api/jellyfin/item.go` is further simplified, focusing only on essential song data retrieval needed for playback functionality.
+*   [2025-04-10 12:35:00] - Decision Summary: Remove TUI Remnant Files
+    *   Context: Code cleanup after transitioning to headless operation, removing unused TUI-specific components.
+    *   Decision: Removed files `config/keybindings.go`, `config/colors.go`, `player/items.go`. Methods in `models/playlist.go` were initially removed but restored due to `models.Item` interface dependency in `api/jellyfin/dtos.go`.
+    *   Rationale: These components were identified as unused TUI leftovers via code analysis (dependency checks on `tcell`/`twidgets`, usage searches for exported identifiers and methods).
+    *   Implications: Reduced codebase size, removed direct TUI dependencies (`tcell`, `twidgets`). Recommend running `go mod tidy` to clean `go.mod`/`go.sum`.

@@ -21,3 +21,7 @@
     *   Notes: Removed GetItem, GetFavorite*, GetGenreAlbums, etc. Kept GetSongsById. Build successful.
 *   [2025-04-10 11:48:15] - Task/Milestone: Update Memory Bank (UMB).
     *   Status: In Progress
+*   [2025-04-10 12:35:00] - Task/Milestone: Remove unused TUI code remnants.
+    *   Status: Completed
+    *   Notes: Removed files `config/keybindings.go`, `config/colors.go`, `player/items.go`. Restored methods to `models/playlist.go` after identifying build error related to `models.Item` interface.
+

@@ -55,3 +55,4 @@ func (p Playlist) GetParent() Id {
 func (p Playlist) GetType() ItemType {
 	return TypePlaylist
 }
+
