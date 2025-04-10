@@ -75,4 +75,5 @@ type ApiPlaybackState struct {
 	Shuffle bool
 
 	Queue []models.Id
+	PlayedToCompletion bool
 }

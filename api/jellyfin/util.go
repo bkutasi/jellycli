@@ -127,7 +127,7 @@ func (jf *Jellyfin) ReportProgress(state *interfaces.ApiPlaybackState) error {
 
 	started := playbackStarted{
 		QueueableMediaTypes: []string{"Audio"},
-		CanSeek:             false,
+		CanSeek:             true, // Enable seeking
 		ItemId:              state.ItemId,
 		MediaSourceId:       state.ItemId,
 		PositionTicks:       int64(state.Position) * ticksToSecond,
@@ -155,7 +155,7 @@ func (jf *Jellyfin) ReportProgress(state *interfaces.ApiPlaybackState) error {
 		report = playbackStopped{
 			playbackStarted: started,
 			PlaybackStoppedInfo: playbackStoppedInfo{
-				PlayedToCompletion: true,
+				PlayedToCompletion: state.PlayedToCompletion, // Use value from state
 			},
 		}
 	} else {

@@ -289,11 +289,13 @@ func (p *Player) audioCallback(status models.AudioStatus) {
 		Position:       status.SongPast.Seconds(),
 		Volume:         int(status.Volume),
 		Shuffle:        status.Shuffle,
+		PlayedToCompletion: true, // Default to true
 	}
 
 	switch status.Action {
 	case models.AudioActionStop:
 		apiStatus.Event = interfaces.EventStop // Reverted back to interfaces
+		apiStatus.PlayedToCompletion = false // Explicit stop means not completed naturally
 	case models.AudioActionPlay:
 		apiStatus.Event = interfaces.EventStart
 	case models.AudioActionNext:

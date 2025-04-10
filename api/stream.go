@@ -44,13 +44,40 @@ type StreamBuffer struct {
 	req            *http.Request
 	resp           *http.Response
 	cancelDownload chan bool
+	cond           *sync.Cond      // Condition variable for Read
+	downloadDone   bool            // Flag indicating download completion/error
+	downloadErr    error           // Stores final download error (EOF or other)
+
 }
 
 func (s *StreamBuffer) Read(p []byte) (n int, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	n, err = s.buff.Read(p)
-	return
+
+	for s.buff.Len() == 0 && !s.downloadDone {
+		// Buffer is empty and download is not finished, wait for signal
+		logrus.Trace("Read: Buffer empty, waiting for data...")
+		s.cond.Wait()
+		logrus.Trace("Read: Woke up from wait.")
+	}
+
+	// Check buffer again after waking up or if download was already done
+	if s.buff.Len() > 0 {
+		n, err = s.buff.Read(p)
+		// If we read something, return that, even if download finished concurrently.
+		// The next Read call will handle the downloadDone state if buffer becomes empty.
+		return n, err // err might be io.EOF from buffer, which is fine
+	}
+
+	// If buffer is still empty AND download is done, return the download error
+	if s.downloadDone {
+		logrus.Tracef("Read: Buffer empty, download done. Returning final error: %v", s.downloadErr)
+		return 0, s.downloadErr // Return stored error (could be nil or io.EOF)
+	}
+
+	// Should theoretically not be reached if logic is correct
+	logrus.Error("Read: Reached unexpected state.")
+	return 0, io.ErrUnexpectedEOF
 }
 
 func (s *StreamBuffer) Close() error {
@@ -111,8 +138,9 @@ func NewStreamDownload(url string, headers map[string]string, params map[string]
 		params:         params,
 		bitrate:        0, // Initialize bitrate, calculate later
 		buff:           bytes.NewBuffer(make([]byte, 0, 1024*1024)), // Start with 1MB capacity
-		cancelDownload: make(chan bool),
+		cancelDownload: make(chan bool), // Add missing comma
 	}
+	stream.cond = sync.NewCond(stream.lock) // Move initialization here
 	if client == nil {
 		client = http.DefaultClient
 	}
@@ -185,14 +213,14 @@ func NewStreamDownload(url string, headers map[string]string, params map[string]
 			logrus.Debugf("Initial buffer target reached (%d / %d bytes)", stream.buff.Len(), initialBufferTarget)
 			break
 		}
-		failed := stream.readData()
-		if failed {
+		finished, readErr := stream.readData() // Update to handle two return values
+		if finished {
 			// If readData returns true (meaning EOF or error), check buffer size
 			if stream.buff.Len() == 0 {
 				stream.Close() // Ensure resources are released
 				return nil, fmt.Errorf("initial buffer failed, no data read")
 			}
-			logrus.Warnf("Initial buffering stopped prematurely (EOF or error), buffered %d bytes", stream.buff.Len())
+			logrus.Warnf("Initial buffering stopped prematurely (%v), buffered %d bytes", readErr, stream.buff.Len()) // Log the error
 			break // Stop initial buffering, but proceed if some data was read
 		}
 	}
@@ -225,30 +253,51 @@ loop:
 				logrus.Tracef("Buffer limit reached (%d / %d bytes)", currentLen, bufferLimitBytes)
 				// No need to reset ticker, just continue loop
 			} else {
-				if s.readData() { // readData returns true on EOF or error
-					logrus.Debug("Background buffering stopped (EOF or error)")
+				readFinished, readErr := s.readData() // readData now returns error status
+				if readFinished {
+					s.lock.Lock()
+					s.downloadDone = true
+					s.downloadErr = readErr // Store EOF or actual error
+					s.lock.Unlock()
+					s.cond.Broadcast() // Wake up any waiting readers
+					logrus.Debugf("Background buffering stopped (%v)", readErr)
 					break loop
 				}
+				// Signal readers that new data is available
+				s.cond.Broadcast()
 			}
-		case _, ok := <-s.cancelDownload:
-			if !ok { // Channel closed
-				logrus.Debug("Stop background stream buffering requested (channel closed)")
-				break loop
-			}
+		case <-s.cancelDownload:
+			logrus.Debug("Stop background stream buffering requested (cancel signal)")
+			s.lock.Lock()
+			s.downloadDone = true
+			s.downloadErr = io.ErrClosedPipe // Indicate deliberate stop
+			s.lock.Unlock()
+			s.cond.Broadcast() // Wake up readers
+			break loop
 		}
 	}
-	logrus.Debug("Background stream buffering finished")
-	// No need to close cancelDownload here, Close() handles it
+	logrus.Debug("Background stream buffering finished loop")
 }
 
 
 // readData reads a chunk from the response body into the buffer.
 // Returns true if EOF is reached or an error occurs (signaling the caller to stop).
-func (s *StreamBuffer) readData() bool {
+func (s *StreamBuffer) readData() (finished bool, err error) {
+	// This block was duplicated and incorrect, removing it.
+	// The correct cancellation check is below.
 	// Check if response body exists
+	// Check for cancellation signal FIRST
+	select {
+	case <-s.cancelDownload:
+		logrus.Debug("readData: Cancellation signal received before read attempt.")
+		return true, io.ErrClosedPipe // Signal stop with specific error
+	default:
+		// Continue if not cancelled
+	}
+
 	if s.resp == nil || s.resp.Body == nil {
 		logrus.Error("readData called with nil response body")
-		return true // Signal stop
+		return true, errors.New("response body is nil") // Signal stop with error
 	}
 
 	// Determine buffer size dynamically or use a fixed reasonable size
@@ -270,9 +319,9 @@ func (s *StreamBuffer) readData() bool {
 	s.lock.Lock() // Lock only when modifying the shared buffer
 	// Check if buffer is nil before writing
 	if s.buff == nil {
-		s.lock.Unlock()
+		// Don't unlock yet, need to set downloadDone/Err
 		logrus.Error("readData: buffer is nil, cannot write")
-		return true // Signal stop
+		return true, errors.New("buffer is nil") // Return error as well
 	}
 
 	if nHttp > 0 {
@@ -280,7 +329,8 @@ func (s *StreamBuffer) readData() bool {
 		if writeErr != nil {
 			logrus.Errorf("Error writing to stream buffer: %v", writeErr)
 			s.lock.Unlock()
-			return true // Treat write error as fatal for buffering
+			// Remove commented-out unlock
+			return true, writeErr // Treat write error as fatal for buffering
 		}
 		if nBuff != nHttp {
 			logrus.Warnf("Incomplete write to stream buffer: wrote %d B, expected %d B", nBuff, nHttp)
@@ -299,15 +349,17 @@ func (s *StreamBuffer) readData() bool {
 		}
 	}
 
-	// Check read error after processing read data
+	// Remove duplicate unlock, the one at line 348 is correct.
+
+	// Check read error after processing read data and unlocking
 	if readErr != nil {
 		if readErr == io.EOF {
 			logrus.Debug("EOF reached while reading stream body")
 		} else {
 			logrus.Errorf("Error reading stream body: %v", readErr)
 		}
-		return true // Signal stop on EOF or any other read error
+		return true, readErr // Signal stop on EOF or any other read error
 	}
 
-	return false // Continue buffering
+	return false, nil // Continue buffering
 }
