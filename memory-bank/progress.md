@@ -1,0 +1,23 @@
+# Progress Log
+
+*(Track major milestones, completed tasks, and work in progress.)*
+
+*   **[YYYY-MM-DD HH:MM:SS] - Task/Milestone:** *(Description of the task or achievement)*
+    *   **Status:** *(e.g., Started, In Progress, Completed, Blocked)*
+    *   **Notes:** *(Optional details or context)*
+
+---
+*Log:*
+*[YYYY-MM-DD HH:MM:SS] - Initial Memory Bank creation.*
+*   [2025-04-10 11:12:15] - Task/Milestone: Refactor codebase to remove UI browsing functionality (api.Browser interface and usages).
+    *   Status: Started
+*   [2025-04-10 11:27:55] - Task/Milestone: Refactor codebase to remove UI browsing functionality (api.Browser interface and usages).
+    *   Status: Completed
+    *   Notes: Removed Browser interface, implementations, and usages from api/, interfaces/, player/, and config/ directories. Fixed resulting build errors in player/player.go and api/jellyfin/search.go. Build successful.
+*   [2025-04-10 11:29:10] - Task/Milestone: Refactor api/jellyfin/item.go to remove non-essential getters.
+    *   Status: Started
+*   [2025-04-10 11:38:36] - Task/Milestone: Refactor api/jellyfin/item.go to remove non-essential getters.
+    *   Status: Completed
+    *   Notes: Removed GetItem, GetFavorite*, GetGenreAlbums, etc. Kept GetSongsById. Build successful.
+*   [2025-04-10 11:48:15] - Task/Milestone: Update Memory Bank (UMB).
+    *   Status: In Progress
