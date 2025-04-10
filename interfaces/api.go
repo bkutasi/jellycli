@@ -50,9 +50,6 @@ type Api interface {
 	ReportProgress(state *ApiPlaybackState) error
 	GetSongDirect(id string, codec string) (io.ReadCloser, error)
 	Stream(song *models.Song) (io.ReadCloser, AudioFormat, error)
-	GetAlbum(id models.Id) (*models.Album, error)
-	GetArtist(id models.Id) (*models.Artist, error)
-	GetImageUrl(item models.Id, itemType models.ItemType) string
 	GetConfig() config.Backend
 	ConnectionOk() error
 	Start() error

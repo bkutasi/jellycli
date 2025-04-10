@@ -195,31 +195,18 @@ func (p *Player) downloadSong(index int) {
 		ok = true
 	}
 	if ok {
-		// fill metadata
-		albumId := song.GetParent()
-		album, err := p.api.GetAlbum(albumId)
+		// Metadata fetching removed for headless operation
+		album := &models.Album{Name: "unknown album"}
 		artist := &models.Artist{Name: "unknown artist"}
 		var imageId string
 		var imageUrl string
-		if err != nil {
-			logrus.Error("Failed to get album by id: ", err.Error())
-			album = &models.Album{Name: "unknown album"}
-		} else {
-			imageId = album.ImageId
-			imageUrl = p.api.GetImageUrl(album.Id, models.TypeAlbum)
-		}
-		a, err := p.api.GetArtist(album.GetParent())
-		if err != nil {
-			logrus.Errorf("Failed to get artist by id: %v", err)
-		} else {
-			artist = a
 			f := func() {
 				metadata := songMetadata{
 					song:          song,
-					album:         album,
-					artist:        artist,
-					albumImageUrl: imageUrl,
-					albumImageId:  imageId,
+					album:         album, // Use placeholder
+					artist:        artist, // Use placeholder
+					albumImageUrl: imageUrl, // Empty
+					albumImageId:  imageId, // Empty
 					reader:        reader,
 					format:        format,
 				}
@@ -227,7 +214,6 @@ func (p *Player) downloadSong(index int) {
 			}
 			defer f()
 		}
-	}
 
 	p.lock.Lock()
 	p.downloadingSong = false

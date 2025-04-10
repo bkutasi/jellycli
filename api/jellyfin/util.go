@@ -166,8 +166,6 @@ func (jf *Jellyfin) ReportProgress(state *interfaces.ApiPlaybackState) error {
 		}
 	}
 
-	// webui does not accept websocket response for now, so fall back to http posts. No p
-	//if jf.socket == nil || state.Event == interfaces.EventStart || state.Event == interfaces.EventStop {
 	params := *jf.defaultParams()
 	body, err := json.Marshal(&report)
 	if err != nil {
@@ -180,22 +178,6 @@ func (jf *Jellyfin) ReportProgress(state *interfaces.ApiPlaybackState) error {
 	}
 	resp.Body.Close()
 
-	/*
-		} else {
-			content := map[string]interface{}{}
-			content["MessageType"] = "ReportPlaybackStatus"
-			content["Data"] = report
-
-			jf.socketLock.Lock()
-			jf.socket.SetWriteDeadline(time.Now().Add(time.Second * 15))
-			err = jf.socket.WriteJSON(content)
-			jf.socketLock.Unlock()
-			if err != nil {
-				logrus.Errorf("Send playback status via websocket: %v", err)
-			}
-		}
-	*/
-
 	logrus.Debug("Progress event: ", state.Event)
 
 	if err == nil {
@@ -206,11 +188,6 @@ func (jf *Jellyfin) ReportProgress(state *interfaces.ApiPlaybackState) error {
 }
 
 
-//ImageUrl returns primary image url for item, if there is one. Otherwise return empty
-func (jf *Jellyfin) GetImageUrl(item models.Id, itemType models.ItemType) string {
-	return ""
-	//return fmt.Sprintf("%s/Items/%s/Images/Primary?maxHeight=500&tag=%s&quality=90", jf.host, item, imageTag)
-}
 
 func (jf *Jellyfin) ReportCapabilities() error {
 	data := map[string]interface{}{}
@@ -277,15 +254,6 @@ func (jf *Jellyfin) deviceName() string {
 	return hostname
 }
 
-func (jf *Jellyfin) GetLink(item models.Item) string {
-	// http://host/jellyfin/web/index.html#!/details.html?id=id&serverId=serverId
-	url := fmt.Sprintf("%s/web/index.html#!/details?id=%s", jf.host, item.GetId())
-	if jf.serverId != "" {
-		url += "&serverId=" + jf.serverId
-	}
-
-	return url
-}
 
 
 const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"

@@ -30,7 +30,6 @@ import (
 // Mediaserver can additionally implement RemoteController, and Cacher.
 type MediaServer interface {
 	Streamer
-	Browser
 	RemoteServer
 }
 
@@ -45,62 +44,6 @@ type Streamer interface {
 	Download(Song *models.Song) (io.ReadCloser, interfaces.AudioFormat, error)
 }
 
-// Browser implements item-based viewing for music artists,albums,playlists etc.
-type Browser interface {
-
-	// GetArtists returns all artists
-	GetArtists(query *models.QueryOpts) ([]*models.Artist, int, error)
-
-	// GetAlbumArtists returns artists that are marked as album artists. See GetArtists.
-	GetAlbumArtists(query *models.QueryOpts) ([]*models.Artist, int, error)
-	// GetAlbums gets albums with given paging. Only PageSize and CurrentPage are used. Total count is returned
-	GetAlbums(query *models.QueryOpts) ([]*models.Album, int, error)
-
-	// GetArtistAlbums returns albums that artist takes part in.
-	GetArtistAlbums(artist models.Id) ([]*models.Album, error)
-
-	// GetAlbumSongs returns songs for given album id.
-	GetAlbumSongs(album models.Id) ([]*models.Song, error)
-	// GetPlaylists returns all playlists.
-	GetPlaylists() ([]*models.Playlist, error)
-	// GetPlaylistSongs fills songs array for playlist. If there's error, songs will not be filled
-	GetPlaylistSongs(playlist models.Id) ([]*models.Song, error)
-
-	// GetSimilarArtists returns similar artists for artist id
-	GetSimilarArtists(artist models.Id) ([]*models.Artist, error)
-
-	// GetsimilarAlbums returns list of similar albums.
-	GetSimilarAlbums(album models.Id) ([]*models.Album, error)
-
-	// GetRecentlyPlayed returns songs that have been played last.
-	GetRecentlyPlayed(paging models.Paging) ([]*models.Song, int, error)
-
-	// GetSongs returns songs by paging. It also returns total number of songs.
-	GetSongs(query *models.QueryOpts) ([]*models.Song, int, error)
-
-	// GetGenres returns music genres with paging. Return genres, total genres and possible error
-	GetGenres(paging models.Paging) ([]*models.IdName, int, error)
-
-	// GetAlbumArtist returns main artist for album.
-	GetAlbumArtist(album *models.Album) (*models.Artist, error)
-
-	// GetInstantMix returns instant mix based on given item.
-	GetInstantMix(item models.Item) ([]*models.Song, error)
-
-	// GetLink returns a link to item that can be opened with browser.
-	// If there is no link or item is invalid, empty link is returned.
-	GetLink(item models.Item) string
-
-	// Search returns values matching query and itemType, limited by number of maxResults,
-	// Only items of itemType should ne returned.
-	Search(query string, itemType models.ItemType, maxResults int) ([]models.Item, error)
-
-	GetAlbum(id models.Id) (*models.Album, error)
-
-	GetArtist(id models.Id) (*models.Artist, error)
-
-	GetImageUrl(item models.Id, itemType models.ItemType) string
-}
 
 // RemoteController controls audio player remotely as well as
 // keeps remote server updated on player status.

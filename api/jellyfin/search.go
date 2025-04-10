@@ -20,7 +20,6 @@ package jellyfin
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"tryffel.net/go/jellycli/models"
@@ -66,42 +65,3 @@ func searchDtoToItems(rc io.ReadCloser, target mediaItemType) ([]models.Item, er
 	return result.Items(), nil
 }
 
-//Search searches audio items
-func (jf *Jellyfin) Search(query string, itemType models.ItemType, limit int) ([]models.Item, error) {
-	if limit == 0 {
-		limit = 40
-	}
-	params := *jf.defaultParams()
-	params.enableRecursive()
-	params["SearchTerm"] = query
-	params["Limit"] = fmt.Sprint(limit)
-	params["IncludePeople"] = "false"
-	params["IncludeMedia"] = "true"
-	var url string
-
-	switch itemType {
-	case models.TypeArtist:
-		params["IncludeArtists"] = "true"
-		params["IncludeMedia"] = "false"
-		url = "/Artists"
-	case models.TypeAlbum:
-		params.setIncludeTypes(mediaTypeAlbum)
-		url = fmt.Sprintf("/Users/%s/Items", jf.userId)
-	case models.TypeSong:
-		params.setIncludeTypes(mediaTypeSong)
-		url = fmt.Sprintf("/Users/%s/Items", jf.userId)
-	case models.TypePlaylist:
-		params.setIncludeTypes(mediaTypePlaylist)
-		url = fmt.Sprintf("/Users/%s/Items", jf.userId)
-	case models.TypeGenre:
-		return nil, errors.New("genres not supported")
-	}
-
-	body, err := jf.get(url, &params)
-	if err != nil {
-		msg := getBodyMsg(body)
-		return nil, fmt.Errorf("query failed: %v: %s", err, msg)
-	}
-
-	return searchDtoToItems(body, toItemType(itemType))
-}

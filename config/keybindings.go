@@ -43,7 +43,6 @@ type NavigationBarBindings struct {
 	Quit     tcell.Key
 	Help     tcell.Key
 	View     tcell.Key
-	Search   tcell.Key
 	Queue    tcell.Key
 	History  tcell.Key
 	Settings tcell.Key
@@ -90,7 +89,6 @@ func DefaultKeyBindings() KeyBindings {
 		},
 		NavigationBar: NavigationBarBindings{
 			Help:    tcell.KeyF1,
-			Search:  tcell.KeyCtrlF,
 			Queue:   tcell.KeyF2,
 			History: tcell.KeyF3,
 			Dump:    tcell.KeyCtrlW,
