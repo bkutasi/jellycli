@@ -59,7 +59,8 @@ type Player struct {
 	DisablePlaybackReporting bool `yaml:"disable_playback_reporting"`
 
 	LocalCacheDir    string `yaml:"local_cache_dir"`
-
+	// InitialBufferKB defines the initial buffer size in KiB before playback starts. Overrides HttpBufferingS for initial buffering if > 0.
+	InitialBufferKB  int    `yaml:"initial_buffer_kb"`
 }
 
 
@@ -81,6 +82,10 @@ func (p *Player) sanitize() {
 	}
 	if p.HttpBufferingLimitMem == 0 {
 		p.HttpBufferingLimitMem = 20
+	}
+	if p.InitialBufferKB == 0 {
+		// Default to 512 KiB initial buffer if not set, can be overridden by HttpBufferingS logic later if needed.
+		p.InitialBufferKB = 512
 	}
 
 	if p.LocalCacheDir == "" {
@@ -158,6 +163,7 @@ func ConfigFromViper() error {
 			EnableRemoteControl:      viper.GetBool("player.enable_remote_control"),
 			DisablePlaybackReporting: viper.GetBool("player.disable_playback_reporting"), // Read new field
 			LocalCacheDir:            viper.GetString("player.local_cache_dir"),
+			InitialBufferKB:          viper.GetInt("player.initial_buffer_kb"), // Read new field
 		},
 		ClientID: viper.GetString("client_id"),
 	}
@@ -219,6 +225,7 @@ func UpdateViper() {
 	viper.Set("player.disable_playback_reporting", AppConfig.Player.DisablePlaybackReporting) // Save new field
 	viper.Set("player.audio_buffering_ms", AppConfig.Player.AudioBufferingMs)
 	viper.Set("player.local_cache_dir", AppConfig.Player.LocalCacheDir)
+	viper.Set("player.initial_buffer_kb", AppConfig.Player.InitialBufferKB) // Save new field
 	viper.Set("client_id", AppConfig.ClientID)
 }
 

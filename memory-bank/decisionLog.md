@@ -31,3 +31,12 @@
     *   Decision: Removed `models.View`, `models.Paging`, `models.Filter`, `models.FilterPlayStatus`, `models.QueryOpts`, `SortMode.Label()`, and related functions/fields (`GetViews`, `GetLatestAlbums`, `GetUserViews`, `musicView`, `setPaging`, `setSorting`, `setFilter`, etc.) across the affected files.
     *   Rationale: These components were directly related to UI presentation (displaying library views, paginating lists, user-facing sorting/filtering options) and are not required for headless functionality.
     *   Implications: Codebase simplified by removing UI-specific logic. API interactions related to these features are removed. Core playback and essential API communication remain.
+*   [2025-04-10 16:04:56] - Decision Summary: Improve Stream Performance (Start & Stop)
+    *   Context: Debugger analysis indicated potential delays in playback start due to fixed initial buffering and slow stream closing.
+    *   Decision(s):
+        1. Introduced a new config option `player.initial_buffer_kb` in `config/config.go` to allow user configuration of the initial buffer size, overriding the previous calculation based solely on `http_buffering_s`.
+        2. Modified `api.NewStreamDownload` in `api/stream.go` to use this new config value.
+        3. Modified `api.NewStreamDownload` to create HTTP requests using `context.WithCancel`.
+        4. Modified `api.StreamBuffer.Close` to call the stored `context.CancelFunc` to attempt faster termination of the underlying HTTP request before closing the response body.
+    *   Rationale: Making the initial buffer configurable provides flexibility to tune startup performance. Using context cancellation offers a mechanism to potentially interrupt blocking network operations during stream closure, improving responsiveness.
+    *   Implications: Users can now adjust `initial_buffer_kb` in their config. Stream closing might be faster, especially in cases of network hangs, though the effectiveness depends on the HTTP client's and server's handling of context cancellation.

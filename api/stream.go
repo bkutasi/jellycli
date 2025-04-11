@@ -20,6 +20,7 @@ package api
 
 import (
 	"bytes"
+	"context" // Import context package
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -45,9 +46,9 @@ type StreamBuffer struct {
 	resp           *http.Response
 	cancelDownload chan bool
 	cond           *sync.Cond      // Condition variable for Read
-	downloadDone   bool            // Flag indicating download completion/error
-	downloadErr    error           // Stores final download error (EOF or other)
-
+	downloadDone   bool               // Flag indicating download completion/error
+	downloadErr    error              // Stores final download error (EOF or other)
+	cancelCtx      context.CancelFunc // Function to cancel the underlying HTTP request context
 }
 
 func (s *StreamBuffer) Read(p []byte) (n int, err error) {
@@ -83,11 +84,20 @@ func (s *StreamBuffer) Read(p []byte) (n int, err error) {
 func (s *StreamBuffer) Close() error {
 	logrus.Debug("Close stream download")
 	// Signal background buffer to stop if it's running
+	// Cancel the request context first
+	if s.cancelCtx != nil {
+		s.cancelCtx()
+		s.cancelCtx = nil // Prevent double cancel
+	}
+
+	// Signal background buffer goroutine to stop
 	if s.cancelDownload != nil {
 		// Use a non-blocking send to avoid deadlock if channel is already closed or receiver isn't ready
 		select {
 		case s.cancelDownload <- true:
+			logrus.Trace("Close: Sent cancel signal to background buffer")
 		default:
+			logrus.Trace("Close: Cancel signal to background buffer already sent or channel closed")
 		}
 		close(s.cancelDownload)
 		s.cancelDownload = nil // Prevent closing closed channel
@@ -146,10 +156,16 @@ func NewStreamDownload(url string, headers map[string]string, params map[string]
 	}
 	stream.client = client
 
+	// Create a cancellable context for the request
+	ctx, cancel := context.WithCancel(context.Background())
+	stream.cancelCtx = cancel // Store the cancel function
+
 	var err error
-	stream.req, err = http.NewRequest(http.MethodGet, url, nil)
+	// Create request with context
+	stream.req, err = http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("init http request: %v", err) // Return nil stream on error
+		cancel() // Clean up context if request creation fails
+		return nil, fmt.Errorf("init http request with context: %v", err) // Return nil stream on error
 	}
 
 	for k, v := range headers {
@@ -190,20 +206,33 @@ func NewStreamDownload(url string, headers map[string]string, params map[string]
 		// stream.bitrate = 128000 / 8 // Example: 128 kbps
 	}
 
-	// Initial buffering - ensure bitrate is positive before using
+	// Initial buffering logic
 	initialBufferTarget := 0
-	if stream.bitrate > 0 {
-		// Ensure buffer target is at least some minimum, e.g., 64KB
-		minBufferBytes := 64 * 1024
+	minBufferBytes := 64 * 1024 // Minimum 64 KiB buffer
+
+	// Prioritize InitialBufferKB if set
+	if config.AppConfig.Player.InitialBufferKB > 0 {
+		initialBufferTarget = config.AppConfig.Player.InitialBufferKB * 1024 // Convert KiB to Bytes
+		logrus.Debugf("Using InitialBufferKB config for initial target: %d bytes", initialBufferTarget)
+	} else if stream.bitrate > 0 {
+		// Fallback to HttpBufferingS if bitrate is known
 		target := stream.bitrate * config.AppConfig.Player.HttpBufferingS
 		if target < minBufferBytes {
 			initialBufferTarget = minBufferBytes
 		} else {
 			initialBufferTarget = target
 		}
+		logrus.Debugf("Using HttpBufferingS config for initial target: %d bytes", initialBufferTarget)
 	} else {
-		initialBufferTarget = 1024 * 512 // Default to 512KB if bitrate unknown
-		logrus.Warnf("Using default initial buffer target: %d bytes", initialBufferTarget)
+		// Fallback to default if bitrate is unknown and InitialBufferKB not set
+		initialBufferTarget = 512 * 1024 // Default to 512 KiB
+		logrus.Warnf("Bitrate unknown and InitialBufferKB not set. Using default initial buffer target: %d bytes", initialBufferTarget)
+	}
+
+	// Ensure the target is at least the minimum
+	if initialBufferTarget < minBufferBytes {
+		logrus.Warnf("Calculated initial buffer target (%d) is less than minimum (%d). Using minimum.", initialBufferTarget, minBufferBytes)
+		initialBufferTarget = minBufferBytes
 	}
 
 
@@ -217,8 +246,9 @@ func NewStreamDownload(url string, headers map[string]string, params map[string]
 		if finished {
 			// If readData returns true (meaning EOF or error), check buffer size
 			if stream.buff.Len() == 0 {
-				stream.Close() // Ensure resources are released
-				return nil, fmt.Errorf("initial buffer failed, no data read")
+				// Don't return nil stream here, just the error. Close is handled by caller if needed.
+				// stream.Close() // Let caller decide if Close is needed based on error
+				return nil, fmt.Errorf("initial buffer failed, no data read: %w", readErr) // Wrap original error
 			}
 			logrus.Warnf("Initial buffering stopped prematurely (%v), buffered %d bytes", readErr, stream.buff.Len()) // Log the error
 			break // Stop initial buffering, but proceed if some data was read

@@ -35,3 +35,6 @@
 *   [2025-04-10 15:35:40] - Task/Milestone: Fix HTTP 400 error for /Sessions/Playing/Stopped endpoint.
     *   Status: Completed
     *   Notes: Corrected JSON tag casing for `PlaybackStoppedInfo` field to `playbackStopInfo` in `api/jellyfin/util.go` (line 98).
+*   [2025-04-10 16:04:56] - Task/Milestone: Implement stream performance improvements (start & stop).
+    *   Status: Completed
+    *   Notes: Added `player.initial_buffer_kb` config option. Modified `api/stream.go` to use the new config for initial buffering and implemented context cancellation in `NewStreamDownload` and `Close` for potentially faster stream termination.
