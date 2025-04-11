@@ -25,3 +25,13 @@
     *   Status: Completed
     *   Notes: Removed files `config/keybindings.go`, `config/colors.go`, `player/items.go`. Restored methods to `models/playlist.go` after identifying build error related to `models.Item` interface.
 
+*   [2025-04-10 15:21:20] - Task/Milestone: Verify project build after `api/stream.go` fix.
+    *   Status: Completed
+    *   Notes: `go build ./...` ran successfully with exit code 0.
+*   [2025-04-10 15:32:25] - Task/Milestone: Fix 'unlock of unlocked mutex' error in api/stream.go
+    *   Status: Completed
+    *   Notes: Removed incorrect s.lock.Unlock() calls at lines 254 and 270 (original line numbers) within the bufferBackground function.
+
+*   [2025-04-10 15:35:40] - Task/Milestone: Fix HTTP 400 error for /Sessions/Playing/Stopped endpoint.
+    *   Status: Completed
+    *   Notes: Corrected JSON tag casing for `PlaybackStoppedInfo` field to `playbackStopInfo` in `api/jellyfin/util.go` (line 98).

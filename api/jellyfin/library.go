@@ -19,8 +19,6 @@
 package jellyfin
 
 import (
-	"encoding/json"
-	"fmt"
 )
 
 type MediaViewResponse struct {
@@ -33,17 +31,4 @@ type MediaLibrary struct {
 	Id       string `json:"Id"`
 }
 
-func (jf *Jellyfin) GetUserViews() {
-	body, err := jf.get("/Users/"+jf.userId+"/Views", nil)
-	if err != nil {
-		println(fmt.Errorf("failed to get views: %v", err))
-	}
-
-	resp := &MediaViewResponse{}
-	err = json.NewDecoder(body).Decode(&resp)
-	if err != nil {
-		fmt.Printf("Invalid server response: %v", err)
-	} else {
-		fmt.Println(resp)
-	}
-}
+// GetUserViews removed as it depends on the removed View functionality.

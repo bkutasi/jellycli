@@ -103,6 +103,5 @@ func (jf *Jellyfin) GetConfig() config.Backend {
 		UserId:    jf.userId,
 		DeviceId:  jf.DeviceId,
 		ServerId:  jf.ServerId(),
-		MusicView: jf.musicView,
 	}
 }

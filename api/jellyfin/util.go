@@ -95,7 +95,7 @@ type playbackStoppedInfo struct {
 
 type playbackStopped struct {
 	playbackStarted
-	PlaybackStoppedInfo playbackStoppedInfo `json:"PlaybackStoppedInfo"`
+	PlaybackStoppedInfo playbackStoppedInfo `json:"playbackStopInfo"`
 }
 
 type queueItem struct {

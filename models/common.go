@@ -20,29 +20,9 @@ package models
 
 import (
 	"errors"
-	"math"
-	"time"
 )
 
-// Paging. First page is 0
-type Paging struct {
-	TotalItems  int
-	TotalPages  int
-	CurrentPage int
-	PageSize    int
-}
-
-// DefaultPaging returns paging with page 0 and default pagesize
-// SetTotalItems calculates number of pages for current page size
-func (p *Paging) SetTotalItems(count int) {
-	p.TotalItems = count
-	p.TotalPages = int(math.Ceil(float64(count) / float64(p.PageSize)))
-}
-
-// Offset returns offset
-func (p *Paging) Offset() int {
-	return p.PageSize * p.CurrentPage
-}
+// Paging struct and methods removed - UI specific.
 
 type SortMode string
 
@@ -51,22 +31,13 @@ const (
 	SortDesc = "DESC"
 )
 
-func (s SortMode) Label() string {
-	switch s {
-	case SortAsc:
-		return "Ascending"
-	case SortDesc:
-		return "Descending"
-	default:
-		return "Unknown"
-	}
-}
+// Label() method removed - UI specific display text.
 
 // ErrInvalidSort occurs if backend does not support given sorting.
 var ErrInvalidSort = errors.New("invalid sort")
 
-// ErrInvalidFilter occurs if backend does not support given filtering.
-var ErrInvalidFilter = errors.New("invalid filter")
+// ErrInvalidFilter removed - Filter struct is removed.
+// var ErrInvalidFilter = errors.New("invalid filter") // Keep ErrInvalidSort for now
 
 type SortField string
 
@@ -81,90 +52,19 @@ const (
 	SortByLastPlayed SortField = "Last played"
 )
 
-// Sort describes sorting
+// Sort struct describes sorting (Kept for potential internal API use, but NewSort removed)
 type Sort struct {
 	Field SortField
-	Mode  string
+	Mode  string // Using string directly instead of SortMode for simplicity if Label is gone
 }
 
-// NewSort creates default sorting, that is, ASC.
-// If field is empty, use SortbyName and ASC
-func NewSort(field SortField) Sort {
-	if field == "" {
-		field = SortByName
-	}
-	s := Sort{
-		Field: field,
-		Mode:  SortAsc,
-	}
-	return s
-}
+// NewSort removed - DefaultQueryOpts removed.
 
-type FilterPlayStatus string
+// FilterPlayStatus type and constants removed - UI specific.
 
-const (
-	FilterIsPlayed    = "Played"
-	FilterIsNotPlayed = "Not played"
-)
+// Filter struct and methods removed - UI specific.
 
-// Filter contains filter for reducing results. Some fields are exclusive,
-type Filter struct {
-	// Played
-	FilterPlayed FilterPlayStatus
-	// Favorite marks items as being starred / favorite.
-	Favorite bool
-	// Genres contains list of genres to include.
-	Genres []IdName // Note: Changed from models.IdName
-	// YearRange contains two elements, items must be within these boundaries.
-	YearRange [2]int
-}
-
-// YearRangeValid returns true if year range is considered valid and sane.
-// If both years are 0, then filter is disabled and range is considered valid.
-// Else this checks:
-// * 1st year is before or equals 2nd
-// * 1st year is after 1900
-// * 2nd year if before now() + 10 years
-func (f Filter) YearRangeValid() bool {
-	if f.YearRange == [2]int{0, 0} {
-		return true
-	}
-
-	if f.YearRange[0] > f.YearRange[1] {
-		return false
-	}
-
-	if f.YearRange[0] < 1900 {
-		return false
-	}
-
-	year := time.Now().Year()
-	if f.YearRange[1] > year+10 {
-		return false
-	}
-	return true
-}
-
-func (f Filter) Empty() bool {
-	return !(f.FilterPlayed == "" && !f.Favorite && len(f.Genres) == 0 && f.YearRange == [2]int{0, 0})
-}
-
-type QueryOpts struct {
-	Paging Paging
-	Filter Filter
-	Sort   Sort
-}
-
-func DefaultQueryOpts() *QueryOpts {
-	return &QueryOpts{
-		Paging: Paging{},
-		Filter: Filter{},
-		Sort: Sort{
-			Field: SortByName,
-			Mode:  SortAsc,
-		},
-	}
-}
+// QueryOpts struct and DefaultQueryOpts func removed - UI specific.
 
 // AudioState is audio player state, playing song, stopped
 type AudioState int

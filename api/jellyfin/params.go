@@ -21,7 +21,6 @@ package jellyfin
 import (
 	"strconv"
 	// "tryffel.net/go/jellycli/interfaces" // Removed unused import
-	"tryffel.net/go/jellycli/models"
 )
 
 type params map[string]string
@@ -31,11 +30,7 @@ func (p *params) ptr() map[string]string {
 	return *p
 }
 
-func (p *params) setPaging(paging models.Paging) {
-	ptr := p.ptr()
-	ptr["Limit"] = strconv.Itoa(paging.PageSize)
-	ptr["StartIndex"] = strconv.Itoa(paging.Offset())
-}
+// setPaging removed - depends on removed models.Paging
 
 func (p *params) setLimit(n int) {
 	(*p)["Limit"] = strconv.Itoa(n)
@@ -54,93 +49,7 @@ func (p *params) setParentId(id string) {
 	(*p)["ParentId"] = id
 }
 
-func (p *params) setSorting(name string, order string) {
-	(*p)["SortBy"] = name
-	(*p)["SortOrder"] = order
-}
-
-func (p *params) setSortingByType(itemType models.ItemType, sort models.Sort) {
-
-	field := "SortName"
-	order := "Ascending"
-
-	if sort.Mode == models.SortAsc {
-		order = "Ascending"
-	} else if sort.Mode == models.SortDesc {
-		order = "Descending"
-	}
-
-	switch sort.Field {
-	case models.SortByDate:
-		field = "ProductionYear,ProductionYear,SortName"
-	case models.SortByName:
-		field = "SortName"
-		// Todo: following depend on item type
-	case models.SortByAlbum:
-		field = "Album,SortName"
-	case models.SortByArtist:
-		field = "Artist,SortName"
-	case models.SortByPlayCount:
-		field = "PlayCount,SortName"
-	case models.SortByRandom:
-		field = "Random,SortName"
-	case models.SortByLatest:
-		field = "DateCreated,SortName"
-	case models.SortByLastPlayed:
-		field = "DatePlayed,SortName"
-	}
-
-	p.setSorting(field, order)
-}
-
-func (p *params) setFilter(tItem models.ItemType, filter models.Filter) {
-	f := ""
-	if filter.Favorite {
-		f = appendFilter(f, "IsFavorite", ",")
-	}
-
-	// jellyfin server does not seem to like sorting artists by play status.
-	// https://github.com/jellyfin/jellyfin/issues/2672
-	if tItem != models.TypeArtist {
-		if filter.FilterPlayed == models.FilterIsPlayed {
-			f = appendFilter(f, "IsPlayed", ",")
-		} else if filter.FilterPlayed == models.FilterIsNotPlayed {
-			f = appendFilter(f, "IsUnPlayed", ",")
-		}
-	}
-
-	if tItem != models.TypeArtist {
-		if filter.YearRangeValid() && filter.YearRange[0] > 0 {
-			years := ""
-			totalYears := filter.YearRange[1] - filter.YearRange[0]
-			if totalYears == 0 {
-				years = strconv.Itoa(filter.YearRange[0])
-			} else {
-				for i := 0; i < totalYears+1; i++ {
-					year := filter.YearRange[0] + i
-					years = appendFilter(years, strconv.Itoa(year), ",")
-				}
-			}
-			(*p)["Years"] = years
-		}
-	}
-
-	if len(filter.Genres) > 0 {
-		genres := ""
-		for _, v := range filter.Genres {
-			genres = appendFilter(genres, v.Name, "|")
-		}
-		(*p)["Genres"] = genres
-	}
-
-	if f != "" {
-		(*p)["Filters"] = f
-	}
-}
-
-func appendFilter(old, new string, separator string) string {
-	if old == "" {
-		return new
-	}
-	return old + separator + new
-}
+// setSorting removed - depends on removed models.SortMode constants/labels
+// setSortingByType removed - depends on removed models.SortMode constants/labels and models.Sort
+// setFilter removed - depends on removed models.Filter and models.FilterPlayStatus
+// appendFilter removed - only used by setFilter

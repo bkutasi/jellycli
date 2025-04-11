@@ -30,8 +30,8 @@ type Jellyfin struct {
 	Token     string `yaml:"token"`
 	UserId    string `yaml:"user_id"`
 	DeviceId  string `yaml:"device_id"`
-	ServerId  string `yaml:"server_id"`
-	MusicView string `yaml:"music_view"`
+	ServerId string `yaml:"server_id"`
+	// MusicView string `yaml:"music_view"` // Removed: TUI-specific concept
 }
 
 func (j *Jellyfin) DumpConfig() interface{} {

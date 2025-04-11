@@ -324,22 +324,7 @@ func (p *playlist) toPlaylist() *models.Playlist {
 	}
 }
 
-type view struct {
-	nameId
-	Type string `json:"Type"`
-}
-
-func (v *view) toView() *models.View {
-	return &models.View{
-		Name: v.Name,
-		Id:   models.Id(v.Id),
-		Type: v.Type,
-	}
-}
-
-type views struct {
-	Views []view `json:"Items"`
-}
+// view, toView, and views structs removed as they were only used by the removed GetViews function.
 
 type images struct {
 	Primary string `json:"Primary"`

@@ -26,3 +26,8 @@
     *   Decision: Removed files `config/keybindings.go`, `config/colors.go`, `player/items.go`. Methods in `models/playlist.go` were initially removed but restored due to `models.Item` interface dependency in `api/jellyfin/dtos.go`.
     *   Rationale: These components were identified as unused TUI leftovers via code analysis (dependency checks on `tcell`/`twidgets`, usage searches for exported identifiers and methods).
     *   Implications: Reduced codebase size, removed direct TUI dependencies (`tcell`, `twidgets`). Recommend running `go mod tidy` to clean `go.mod`/`go.sum`.
+*   [2025-04-10 13:16:00] - Decision Summary: Remove TUI-specific View, Paging, Sorting, Filtering Code
+    *   Context: Refactoring codebase for headless operation, removing unnecessary UI elements identified in `models/common.go`, `api/jellyfin/views.go`, `api/jellyfin/dtos.go`, `api/jellyfin/library.go`, `api/jellyfin/api.go`, `api/jellyfin/params.go`, `config/backends.go`, `config/config.go`, `cmd/env.go`.
+    *   Decision: Removed `models.View`, `models.Paging`, `models.Filter`, `models.FilterPlayStatus`, `models.QueryOpts`, `SortMode.Label()`, and related functions/fields (`GetViews`, `GetLatestAlbums`, `GetUserViews`, `musicView`, `setPaging`, `setSorting`, `setFilter`, etc.) across the affected files.
+    *   Rationale: These components were directly related to UI presentation (displaying library views, paginating lists, user-facing sorting/filtering options) and are not required for headless functionality.
+    *   Implications: Codebase simplified by removing UI-specific logic. API interactions related to these features are removed. Core playback and essential API communication remain.

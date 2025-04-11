@@ -30,7 +30,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,7 +58,7 @@ type Jellyfin struct {
 	SessionId string
 	client    *http.Client
 	loggedIn  bool
-	musicView string
+	// musicView string // Removed: TUI-specific concept
 
 	player interfaces.Player
 	queue  interfaces.QueueController
@@ -143,7 +142,7 @@ func NewJellyfin(conf *config.Jellyfin, provider config.KeyValueProvider) (*Jell
 		jf.token = conf.Token
 		jf.userId = conf.UserId
 		jf.serverId = conf.ServerId
-		jf.musicView = conf.MusicView
+		// jf.musicView = conf.MusicView // Removed: TUI-specific concept
 	}
 
 	id, err := config.GetClientID()
@@ -209,10 +208,10 @@ func NewJellyfin(conf *config.Jellyfin, provider config.KeyValueProvider) (*Jell
 		}
 	}
 
-	err = jf.selectDefaultMusicView(provider)
-	if err != nil {
-		return jf, err
-	}
+	// err = jf.selectDefaultMusicView(provider) // Removed: TUI-specific concept
+	// if err != nil {
+	// 	return jf, err
+	// }
 
 	return jf, err
 }
@@ -273,56 +272,7 @@ func (jf *Jellyfin) TokenOk() error {
 	return nil
 }
 
-func (jf *Jellyfin) DefaultMusicView() string {
-	return jf.musicView
-}
-
-func (jf *Jellyfin) SetDefaultMusicview(id string) {
-	jf.musicView = id
-}
-
-func (jf *Jellyfin) selectDefaultMusicView(provider config.KeyValueProvider) error {
-	if jf.musicView != "" {
-		return nil
-	}
-	views, err := jf.GetViews()
-	if err != nil {
-		return fmt.Errorf("get user views: %v", err)
-	}
-	if len(views) == 0 {
-		return fmt.Errorf("no views to use")
-	}
-
-	fmt.Println("Found collections: ")
-	for i, v := range views {
-		fmt.Printf("%d. %s (%s)\n", i+1, v.Name, v.Type)
-	}
-
-	// Loop for as long as user gives valid input for default view
-	for {
-		number, err := provider.Get("jellyfin.music_view", false, "Default music view (enter number)")
-		if err != nil {
-			fmt.Println("Must be a valid number")
-		} else {
-			num, err := strconv.Atoi(number)
-			if err != nil {
-				fmt.Println("Must be a valid number")
-			} else {
-				id := ""
-				if num < len(views)+1 && num > 0 {
-					id = views[num-1].Id.String()
-					jf.musicView = id
-					if err != nil {
-						return err
-					}
-					return nil
-				} else {
-					fmt.Println("Must be in range")
-				}
-			}
-		}
-	}
-}
+// DefaultMusicView, SetDefaultMusicview, and selectDefaultMusicView removed as they depend on the removed View concept.
 
 func (jf *Jellyfin) ping() error {
 	body, err := jf.get("/System/Info/Public", nil)

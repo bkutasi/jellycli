@@ -249,22 +249,26 @@ loop:
 			}
 			s.lock.Unlock()
 
-			if currentLen >= bufferLimitBytes {
-				logrus.Tracef("Buffer limit reached (%d / %d bytes)", currentLen, bufferLimitBytes)
-				// No need to reset ticker, just continue loop
-			} else {
-				readFinished, readErr := s.readData() // readData now returns error status
+			// Only read if buffer is below the limit
+			if currentLen < bufferLimitBytes {
+				// REMOVED: s.lock.Unlock() // Unlock before calling readData (which locks internally) - This was incorrect
+				logrus.Tracef("Buffer below limit (%d / %d bytes), attempting read", currentLen, bufferLimitBytes)
+				readFinished, readErr := s.readData()
 				if readFinished {
-					s.lock.Lock()
+					s.lock.Lock() // Re-lock to update shared state
 					s.downloadDone = true
 					s.downloadErr = readErr // Store EOF or actual error
-					s.lock.Unlock()
-					s.cond.Broadcast() // Wake up any waiting readers
+					s.lock.Unlock()         // Unlock after update
+					s.cond.Broadcast()      // Wake up any waiting readers
 					logrus.Debugf("Background buffering stopped (%v)", readErr)
 					break loop
 				}
-				// Signal readers that new data is available
+				// Signal readers that new data *might* be available (readData succeeded)
 				s.cond.Broadcast()
+			} else {
+				logrus.Tracef("Buffer limit reached (%d / %d bytes), skipping read this tick", currentLen, bufferLimitBytes)
+				// REMOVED: s.lock.Unlock() // Unlock if not reading - This was incorrect
+				// Buffer is full, do nothing this tick, wait for reader to consume data
 			}
 		case <-s.cancelDownload:
 			logrus.Debug("Stop background stream buffering requested (cancel signal)")

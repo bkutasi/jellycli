@@ -145,8 +145,8 @@ func ConfigFromViper() error {
 			Token:     viper.GetString("jellyfin.token"),
 			UserId:    viper.GetString("jellyfin.userid"),
 			DeviceId:  viper.GetString("jellyfin.device_id"),
-			ServerId:  viper.GetString("jellyfin.server_id"),
-			MusicView: viper.GetString("jellyfin.music_view"),
+			ServerId: viper.GetString("jellyfin.server_id"),
+			// MusicView: viper.GetString("jellyfin.music_view"), // Removed: TUI-specific concept
 		},
 		Player: Player{
 			Server:                   viper.GetString("player.server"),
@@ -208,7 +208,7 @@ func UpdateViper() {
 	viper.Set("jellyfin.userid", AppConfig.Jellyfin.UserId)
 	viper.Set("jellyfin.device_id", AppConfig.Jellyfin.DeviceId)
 	viper.Set("jellyfin.server_id", AppConfig.Jellyfin.ServerId)
-	viper.Set("jellyfin.music_view", AppConfig.Jellyfin.MusicView)
+	// viper.Set("jellyfin.music_view", AppConfig.Jellyfin.MusicView) // Removed: TUI-specific concept
 
 	viper.Set("player.server", AppConfig.Player.Server)
 	viper.Set("player.logfile", AppConfig.Player.LogFile)
